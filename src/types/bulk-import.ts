@@ -1,4 +1,4 @@
-import type { ExtractionResult, ImageMetadata } from "@/types/zwift";
+import type { ExtractionResult, RideMenuExtractionResult, ImageMetadata } from "@/types/zwift";
 
 export type BulkItemStatus = "pending" | "hashing" | "uploading" | "extracting" | "ready" | "saving" | "saved" | "duplicate" | "error";
 
@@ -12,6 +12,8 @@ export interface BulkImportItem {
   imageHash?: string;
   metadata: ImageMetadata;
   extraction: ExtractionResult;
+  rideMenuExtraction?: RideMenuExtractionResult;
+  detectedScreenType?: string;
   rawJson?: any;
 }
 
@@ -37,6 +39,21 @@ export const defaultExtraction: ExtractionResult = {
     streak_weeks: 0, total_distance_km: 0, total_elevation_m: 0, total_energy_kj: 0,
   },
   training_status: { training_score: 0, training_score_delta: 0, freshness_state: "" },
+  image_metadata: defaultMetadata,
+  confidence: { overall: 0 },
+};
+
+export const defaultRideMenuExtraction: RideMenuExtractionResult = {
+  screen_type: "ride_menu",
+  rider: { name: null, height_cm: null, weight_kg: null },
+  this_ride: {
+    distance_km: null, duration_minutes: null, calories: null, elevation_m: null,
+    power_5s_w: null, power_1m_w: null, power_5m_w: null, power_20m_w: null,
+  },
+  your_best: { best_5s_w: null, best_1m_w: null, best_5m_w: null, best_20m_w: null },
+  totals: { total_distance_km: null, total_time_minutes: null, total_calories: null, total_elevation_m: null },
+  rider_score: { score: null, until_next_level: null },
+  distributions: { avg_power_w: null, avg_heart_rate_bpm: null },
   image_metadata: defaultMetadata,
   confidence: { overall: 0 },
 };

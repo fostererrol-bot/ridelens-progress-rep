@@ -6,7 +6,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const EXTRACTION_PROMPT = `You are analyzing a Zwift Progress Report screenshot. Extract ALL visible metrics into this exact JSON structure. 
+const SCREEN_DETECT_PROMPT = `You are analyzing a Zwift screenshot. First, determine the screen type.
+
+Look for these markers:
+- "Progress Report" screen: Shows "PROGRESS REPORT" title, XP bar, achievements, route badges, challenge progress, training status section with freshness indicator
+- "Ride Menu" screen: Shows "MENU" title, rider name with flag, "this ride" vs "your totals" stats, power distribution histogram, heart rate distribution histogram, rider score bar, BACK/END RIDE buttons
+
+Return ONLY one of: "progress_report" or "ride_menu"
+Do not return anything else.`;
+
+const PROGRESS_REPORT_PROMPT = `You are analyzing a Zwift Progress Report screenshot. Extract ALL visible metrics into this exact JSON structure. 
 
 IMPORTANT: 
 - Remove thousands separators from numbers (e.g. "77,230" → 77230)
@@ -73,6 +82,104 @@ Metadata rule:
     "overall": 0.0
   }
 }`;
+
+const RIDE_MENU_PROMPT = `You are analyzing a Zwift Ride Menu / In-Ride Summary screenshot. Extract ALL visible metrics into the strict JSON schema below.
+
+IGNORE RULES (critical):
+- Ignore right-hand vertical buttons: Workouts, Badges, Pair, Garage, Settings
+- Ignore challenge artwork images
+- Ignore background scenery
+- Ignore any icons without numeric values
+
+PARSING RULES:
+- Output JSON only
+- Numbers must be numeric (no strings)
+- Remove commas from numbers (e.g. "385,330" → 385330)
+- Convert elevation shown as km → meters (e.g. "65.0km" → 65000)
+- Convert time HH:MM → total minutes (e.g. "0:53" → 53, "574:06" → 34446)
+- If unsure, set value to null and lower confidence
+- Return ONLY valid JSON, no markdown
+
+Metadata rule:
+- If the platform provides image metadata (EXIF), extract DateTimeOriginal (or closest equivalent).
+- Populate image_metadata.captured_at with ISO format if available.
+- Populate image_metadata.timezone_offset_minutes if present in EXIF offset tags.
+- Set image_metadata.metadata_source = "exif" if DateTimeOriginal exists.
+- If no EXIF capture time exists but file timestamp exists, use that with metadata_source = "file".
+- Otherwise set captured_at to null and metadata_source to "unknown".
+- Do not guess timestamps.
+
+{
+  "screen_type": "ride_menu",
+  "rider": {
+    "name": null,
+    "height_cm": null,
+    "weight_kg": null
+  },
+  "this_ride": {
+    "distance_km": null,
+    "duration_minutes": null,
+    "calories": null,
+    "elevation_m": null,
+    "power_5s_w": null,
+    "power_1m_w": null,
+    "power_5m_w": null,
+    "power_20m_w": null
+  },
+  "your_best": {
+    "best_5s_w": null,
+    "best_1m_w": null,
+    "best_5m_w": null,
+    "best_20m_w": null
+  },
+  "totals": {
+    "total_distance_km": null,
+    "total_time_minutes": null,
+    "total_calories": null,
+    "total_elevation_m": null
+  },
+  "rider_score": {
+    "score": null,
+    "until_next_level": null
+  },
+  "distributions": {
+    "avg_power_w": null,
+    "avg_heart_rate_bpm": null
+  },
+  "image_metadata": {
+    "captured_at": null,
+    "timezone_offset_minutes": null,
+    "metadata_source": "unknown"
+  },
+  "confidence": {
+    "overall": 0.0
+  }
+}`;
+
+async function callAI(apiKey: string, prompt: string, imageUrl: string) {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: imageUrl } },
+          ],
+        },
+      ],
+    }),
+  });
+
+  return response;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -92,25 +199,37 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: EXTRACTION_PROMPT },
-              { type: "image_url", image_url: { url: imageUrl } },
-            ],
-          },
-        ],
-      }),
-    });
+    // Step 1: Detect screen type
+    const detectResponse = await callAI(LOVABLE_API_KEY, SCREEN_DETECT_PROMPT, imageUrl);
+
+    if (!detectResponse.ok) {
+      const errorText = await detectResponse.text();
+      console.error("Screen detect error:", detectResponse.status, errorText);
+
+      if (detectResponse.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limited. Please try again later." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (detectResponse.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      throw new Error(`Screen detect error: ${detectResponse.status}`);
+    }
+
+    const detectData = await detectResponse.json();
+    const screenTypeRaw = (detectData.choices?.[0]?.message?.content || "").trim().toLowerCase();
+    const screenType = screenTypeRaw.includes("ride_menu") ? "ride_menu" : "progress_report";
+    console.log("Detected screen type:", screenType);
+
+    // Step 2: Extract with appropriate prompt
+    const extractionPrompt = screenType === "ride_menu" ? RIDE_MENU_PROMPT : PROGRESS_REPORT_PROMPT;
+    const response = await callAI(LOVABLE_API_KEY, extractionPrompt, imageUrl);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -138,7 +257,6 @@ serve(async (req) => {
     // Try to parse JSON from the response
     let parsed;
     try {
-      // Remove markdown code blocks if present
       const jsonStr = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       parsed = JSON.parse(jsonStr);
     } catch {
@@ -150,6 +268,7 @@ serve(async (req) => {
       JSON.stringify({
         raw: rawContent,
         parsed: parsed,
+        screen_type: screenType,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

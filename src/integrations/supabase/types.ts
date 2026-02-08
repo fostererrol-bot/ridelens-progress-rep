@@ -164,6 +164,98 @@ export type Database = {
           },
         ]
       }
+      ride_menu_metrics: {
+        Row: {
+          avg_heart_rate_bpm: number | null
+          avg_power_w: number | null
+          best_1m_w: number | null
+          best_20m_w: number | null
+          best_5m_w: number | null
+          best_5s_w: number | null
+          id: string
+          power_1m_w: number | null
+          power_20m_w: number | null
+          power_5m_w: number | null
+          power_5s_w: number | null
+          ride_calories: number | null
+          ride_distance_km: number | null
+          ride_duration_minutes: number | null
+          ride_elevation_m: number | null
+          rider_height_cm: number | null
+          rider_name: string | null
+          rider_score: number | null
+          rider_weight_kg: number | null
+          snapshot_id: string
+          total_calories: number | null
+          total_distance_km: number | null
+          total_elevation_m: number | null
+          total_time_minutes: number | null
+          until_next_level: number | null
+        }
+        Insert: {
+          avg_heart_rate_bpm?: number | null
+          avg_power_w?: number | null
+          best_1m_w?: number | null
+          best_20m_w?: number | null
+          best_5m_w?: number | null
+          best_5s_w?: number | null
+          id?: string
+          power_1m_w?: number | null
+          power_20m_w?: number | null
+          power_5m_w?: number | null
+          power_5s_w?: number | null
+          ride_calories?: number | null
+          ride_distance_km?: number | null
+          ride_duration_minutes?: number | null
+          ride_elevation_m?: number | null
+          rider_height_cm?: number | null
+          rider_name?: string | null
+          rider_score?: number | null
+          rider_weight_kg?: number | null
+          snapshot_id: string
+          total_calories?: number | null
+          total_distance_km?: number | null
+          total_elevation_m?: number | null
+          total_time_minutes?: number | null
+          until_next_level?: number | null
+        }
+        Update: {
+          avg_heart_rate_bpm?: number | null
+          avg_power_w?: number | null
+          best_1m_w?: number | null
+          best_20m_w?: number | null
+          best_5m_w?: number | null
+          best_5s_w?: number | null
+          id?: string
+          power_1m_w?: number | null
+          power_20m_w?: number | null
+          power_5m_w?: number | null
+          power_5s_w?: number | null
+          ride_calories?: number | null
+          ride_distance_km?: number | null
+          ride_duration_minutes?: number | null
+          ride_elevation_m?: number | null
+          rider_height_cm?: number | null
+          rider_name?: string | null
+          rider_score?: number | null
+          rider_weight_kg?: number | null
+          snapshot_id?: string
+          total_calories?: number | null
+          total_distance_km?: number | null
+          total_elevation_m?: number | null
+          total_time_minutes?: number | null
+          until_next_level?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ride_menu_metrics_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: true
+            referencedRelation: "snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       snapshots: {
         Row: {
           captured_at: string | null
