@@ -1,19 +1,19 @@
-import { Trophy, Zap, Activity, Brain, Clock, Bike } from "lucide-react";
+import { useState } from "react";
+import { Trophy, Zap, Activity, Brain } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { ProgressBar } from "@/components/ProgressBar";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
-import { MetadataSourceBadge } from "@/components/MetadataSourceBadge";
 import { ChangesSinceLastReport } from "@/components/ChangesSinceLastReport";
 import { RideMenuDashboard } from "@/components/RideMenuDashboard";
-import { useLatestSnapshots } from "@/hooks/useSnapshots";
+import { SnapshotSelector } from "@/components/SnapshotSelector";
+import { useAllSnapshots } from "@/hooks/useSnapshots";
 import { useSeedData } from "@/hooks/useSeedData";
 import { motion } from "framer-motion";
-import { format } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 
 export default function Dashboard() {
   useSeedData();
-  const { data, isLoading } = useLatestSnapshots(2);
+  const { data, isLoading } = useAllSnapshots();
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   if (isLoading) {
     return (
@@ -23,10 +23,9 @@ export default function Dashboard() {
     );
   }
 
-  const latest = data?.[0];
-  const prev = data?.[1] || null;
+  const snapshots = data || [];
 
-  if (!latest) {
+  if (snapshots.length === 0) {
     return (
       <div className="text-center py-20">
         <h2 className="text-xl font-semibold mb-2">No data yet</h2>
@@ -35,40 +34,33 @@ export default function Dashboard() {
     );
   }
 
-  const isRideMenu = latest.snapshot.screen_type === "ride_menu";
-  const displayDate = latest.snapshot.captured_at || latest.snapshot.created_at;
-  const metadataJson = latest.snapshot.metadata_json as any;
-  const metadataSource: "exif" | "file" | "unknown" = metadataJson?.metadata_source || "unknown";
+  // Clamp index in case data changed
+  const idx = Math.min(selectedIndex, snapshots.length - 1);
+  const current = snapshots[idx];
+  const prev = idx < snapshots.length - 1 ? snapshots[idx + 1] : null;
 
-  const p = latest.progress;
-  const perf = latest.performance;
-  const fit = latest.fitness;
-  const train = latest.training;
+  const isRideMenu = current.snapshot.screen_type === "ride_menu";
+
+  const p = current.progress;
+  const perf = current.performance;
+  const fit = current.fitness;
+  const train = current.training;
 
   return (
     <div>
       {/* Header */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            Captured: {format(new Date(displayDate), "dd MMM yyyy, HH:mm")}
-          </span>
-          <MetadataSourceBadge source={metadataSource} />
-          <Badge variant="secondary" className="text-[10px] gap-1">
-            {isRideMenu ? <Bike className="w-3 h-3" /> : <Trophy className="w-3 h-3" />}
-            {isRideMenu ? "Ride Menu" : "Progress Report"}
-          </Badge>
-          {latest.snapshot.source === "seed" && (
-            <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">Seed Data</span>
-          )}
-        </div>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4">
+        <h1 className="text-2xl font-bold mb-3">Dashboard</h1>
+        <SnapshotSelector
+          snapshots={snapshots}
+          currentIndex={idx}
+          onIndexChange={setSelectedIndex}
+        />
       </motion.div>
 
       {/* Ride Menu layout */}
-      {isRideMenu && latest.rideMenu ? (
-        <RideMenuDashboard data={latest.rideMenu} />
+      {isRideMenu && current.rideMenu ? (
+        <RideMenuDashboard data={current.rideMenu} />
       ) : (
         <>
           {/* Progress Report layout */}
@@ -198,7 +190,7 @@ export default function Dashboard() {
             </MetricCard>
           </div>
 
-          <ChangesSinceLastReport latest={latest} previous={prev} />
+          <ChangesSinceLastReport latest={current} previous={prev} />
         </>
       )}
     </div>
