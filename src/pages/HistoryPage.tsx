@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, Eye, ArrowUp, ArrowDown, ArrowUpDown, X } from "lucide-react";
+import { Trash2, Eye, ArrowUp, ArrowDown, ArrowUpDown, X, Bike, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import type { FullSnapshot } from "@/types/zwift";
 
-type SortField = "captured" | "uploaded" | "confidence" | "level" | "ftp";
+type SortField = "captured" | "uploaded" | "confidence" | "level" | "ftp" | "screen_type";
 type SortDir = "asc" | "desc";
 
 export default function HistoryPage() {
@@ -85,12 +85,16 @@ export default function HistoryPage() {
           bv = Number(b.snapshot.overall_confidence) || 0;
           break;
         case "level":
-          av = a.progress?.level ?? 0;
-          bv = b.progress?.level ?? 0;
+          av = a.progress?.level ?? a.rideMenu?.rider_score ?? 0;
+          bv = b.progress?.level ?? b.rideMenu?.rider_score ?? 0;
           break;
         case "ftp":
-          av = a.performance?.ftp_w ?? 0;
-          bv = b.performance?.ftp_w ?? 0;
+          av = a.performance?.ftp_w ?? a.rideMenu?.avg_power_w ?? 0;
+          bv = b.performance?.ftp_w ?? b.rideMenu?.avg_power_w ?? 0;
+          break;
+        case "screen_type":
+          av = a.snapshot.screen_type === "ride_menu" ? 1 : 0;
+          bv = b.snapshot.screen_type === "ride_menu" ? 1 : 0;
           break;
         default:
           av = 0; bv = 0;
@@ -191,14 +195,17 @@ export default function HistoryPage() {
                   </TableHead>
                   <TableHead>Stamp</TableHead>
                   <TableHead>Source</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("screen_type")}>
+                    <span className="inline-flex items-center">Type<SortIcon field="screen_type" /></span>
+                  </TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("confidence")}>
                     <span className="inline-flex items-center">Confidence<SortIcon field="confidence" /></span>
                   </TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("level")}>
-                    <span className="inline-flex items-center">Level<SortIcon field="level" /></span>
+                    <span className="inline-flex items-center">Level / Score<SortIcon field="level" /></span>
                   </TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("ftp")}>
-                    <span className="inline-flex items-center">FTP<SortIcon field="ftp" /></span>
+                    <span className="inline-flex items-center">FTP / Avg W<SortIcon field="ftp" /></span>
                   </TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -210,6 +217,7 @@ export default function HistoryPage() {
                   const createdAt = item.snapshot.created_at;
                   const metaJson = item.snapshot.metadata_json as any;
                   const metaSource: "exif" | "file" | "unknown" = metaJson?.metadata_source || "unknown";
+                  const isRideMenu = item.snapshot.screen_type === "ride_menu";
 
                   return (
                   <TableRow key={item.snapshot.id} className="hover:bg-secondary/30 cursor-pointer" onClick={() => setDetailSnap(item)}>
@@ -228,12 +236,24 @@ export default function HistoryPage() {
                     </TableCell>
                     <TableCell><Badge variant="secondary" className="text-xs">{item.snapshot.source}</Badge></TableCell>
                     <TableCell>
+                      <Badge variant="secondary" className="text-[10px] gap-1">
+                        {isRideMenu ? <Bike className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
+                        {isRideMenu ? "Ride" : "Report"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <span className={`font-mono text-sm ${Number(item.snapshot.overall_confidence) >= 0.85 ? "delta-up" : "text-warning"}`}>
                         {(Number(item.snapshot.overall_confidence) * 100).toFixed(0)}%
                       </span>
                     </TableCell>
-                    <TableCell className="font-mono">{item.progress?.level ?? "—"}</TableCell>
-                    <TableCell className="font-mono">{item.performance?.ftp_w ? `${item.performance.ftp_w}W` : "—"}</TableCell>
+                    <TableCell className="font-mono">
+                      {isRideMenu ? (item.rideMenu?.rider_score?.toLocaleString() ?? "—") : (item.progress?.level ?? "—")}
+                    </TableCell>
+                    <TableCell className="font-mono">
+                      {isRideMenu
+                        ? (item.rideMenu?.avg_power_w ? `${item.rideMenu.avg_power_w}W` : "—")
+                        : (item.performance?.ftp_w ? `${item.performance.ftp_w}W` : "—")}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" onClick={() => setDetailSnap(item)}>

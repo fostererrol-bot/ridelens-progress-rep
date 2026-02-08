@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 
-type Metric = "ftp" | "training_score" | "total_distance" | "elevation" | "power_5s" | "power_1m" | "power_5m" | "power_20m" | "racing_score" | "energy";
+type Metric = "ftp" | "training_score" | "total_distance" | "elevation" | "power_5s" | "power_1m" | "power_5m" | "power_20m" | "racing_score" | "energy" | "avg_power" | "avg_hr" | "rider_score" | "ride_distance";
 
 const metricConfig: Record<Metric, { label: string; unit: string; color: string }> = {
   ftp: { label: "FTP", unit: "W", color: "hsl(24, 100%, 50%)" },
@@ -21,6 +21,10 @@ const metricConfig: Record<Metric, { label: string; unit: string; color: string 
   power_20m: { label: "20m Power", unit: "W", color: "hsl(50, 90%, 50%)" },
   racing_score: { label: "Racing Score", unit: "", color: "hsl(300, 60%, 55%)" },
   energy: { label: "Total Energy", unit: "kJ", color: "hsl(20, 80%, 55%)" },
+  avg_power: { label: "Avg Power (Ride)", unit: "W", color: "hsl(210, 70%, 55%)" },
+  avg_hr: { label: "Avg HR (Ride)", unit: "bpm", color: "hsl(0, 65%, 55%)" },
+  rider_score: { label: "Rider Score", unit: "", color: "hsl(30, 80%, 50%)" },
+  ride_distance: { label: "Ride Distance", unit: "km", color: "hsl(180, 60%, 45%)" },
 };
 
 type ViewMode = "time_series" | "between_reports";
@@ -40,14 +44,18 @@ export default function TrendsPage() {
     switch (m) {
       case "ftp": return item.performance?.ftp_w ?? null;
       case "training_score": return item.training?.training_score != null ? Number(item.training.training_score) : null;
-      case "total_distance": return item.fitness?.total_distance_km != null ? Number(item.fitness.total_distance_km) : null;
-      case "elevation": return item.fitness?.total_elevation_m != null ? Number(item.fitness.total_elevation_m) : null;
-      case "power_5s": return item.performance?.best_5s_w ?? null;
-      case "power_1m": return item.performance?.best_1m_w ?? null;
-      case "power_5m": return item.performance?.best_5m_w ?? null;
-      case "power_20m": return item.performance?.best_20m_w ?? null;
+      case "total_distance": return item.fitness?.total_distance_km != null ? Number(item.fitness.total_distance_km) : (item.rideMenu?.total_distance_km != null ? Number(item.rideMenu.total_distance_km) : null);
+      case "elevation": return item.fitness?.total_elevation_m != null ? Number(item.fitness.total_elevation_m) : (item.rideMenu?.total_elevation_m != null ? Number(item.rideMenu.total_elevation_m) : null);
+      case "power_5s": return item.performance?.best_5s_w ?? item.rideMenu?.best_5s_w ?? null;
+      case "power_1m": return item.performance?.best_1m_w ?? item.rideMenu?.best_1m_w ?? null;
+      case "power_5m": return item.performance?.best_5m_w ?? item.rideMenu?.best_5m_w ?? null;
+      case "power_20m": return item.performance?.best_20m_w ?? item.rideMenu?.best_20m_w ?? null;
       case "racing_score": return item.performance?.racing_score ?? null;
       case "energy": return item.fitness?.total_energy_kj != null ? Number(item.fitness.total_energy_kj) : null;
+      case "avg_power": return item.rideMenu?.avg_power_w ?? null;
+      case "avg_hr": return item.rideMenu?.avg_heart_rate_bpm ?? null;
+      case "rider_score": return item.rideMenu?.rider_score ?? null;
+      case "ride_distance": return item.rideMenu?.ride_distance_km != null ? Number(item.rideMenu.ride_distance_km) : null;
     }
   };
 
