@@ -1,75 +1,39 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, AlertTriangle, Check, Loader2 } from "lucide-react";
+import { Upload, Check, Loader2, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ExtractionResult, ImageMetadata } from "@/types/zwift";
 import { extractImageMetadata } from "@/hooks/useImageMetadata";
-import { MetadataSourceBadge } from "@/components/MetadataSourceBadge";
+import { BulkImportCard } from "@/components/BulkImportCard";
+import type { BulkImportItem } from "@/types/bulk-import";
+import { defaultMetadata, defaultExtraction } from "@/types/bulk-import";
 import CryptoJS from "crypto-js";
 
-type Step = "upload" | "processing" | "review" | "done";
-
-const defaultMetadata: ImageMetadata = {
-  captured_at: null,
-  timezone_offset_minutes: null,
-  metadata_source: "unknown",
-};
-
-const defaultExtraction: ExtractionResult = {
-  screen_type: "progress_report",
-  level: 0,
-  career_progress: {
-    this_ride_xp: 0, xp_current: 0, xp_target: 0,
-    achievements_current: 0, achievements_target: 0,
-    route_badges_current: 0, route_badges_target: 0,
-    challenge_name: "", challenge_stage_current: 0, challenge_stage_target: 0,
-    challenge_this_ride_km: 0, challenge_progress_km: 0, challenge_target_km: 0,
-  },
-  performance: { best_5s_w: 0, best_1m_w: 0, best_5m_w: 0, best_20m_w: 0, ftp_w: 0, racing_score: 0 },
-  fitness_trends: {
-    weekly_this_ride_km: 0, weekly_progress_km: 0, weekly_goal_km: 0,
-    streak_weeks: 0, total_distance_km: 0, total_elevation_m: 0, total_energy_kj: 0,
-  },
-  training_status: { training_score: 0, training_score_delta: 0, freshness_state: "" },
-  image_metadata: defaultMetadata,
-  confidence: { overall: 0 },
-};
-
 export default function ImportScreenshots() {
-  const [step, setStep] = useState<Step>("upload");
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>("");
-  const [imageUrl, setImageUrl] = useState<string>("");
-  const [imageHash, setImageHash] = useState<string>("");
-  const [extraction, setExtraction] = useState<ExtractionResult>(defaultExtraction);
-  const [rawJson, setRawJson] = useState<any>(null);
-  const [metadata, setMetadata] = useState<ImageMetadata>(defaultMetadata);
-  const [saving, setSaving] = useState(false);
+  const [items, setItems] = useState<BulkImportItem[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
+  const processingRef = useRef(false);
 
-  const onDrop = useCallback(async (accepted: File[]) => {
-    const f = accepted[0];
-    if (!f) return;
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+  const updateItem = useCallback((id: string, updates: Partial<BulkImportItem>) => {
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+  }, []);
 
-    // Extract metadata first
-    const meta = await extractImageMetadata(f);
-    setMetadata(meta);
+  const processFile = useCallback(async (item: BulkImportItem) => {
+    // 1. Extract metadata
+    const meta = await extractImageMetadata(item.file);
+    updateItem(item.id, { metadata: meta, status: "hashing" });
 
-    // Compute hash
-    const arrayBuf = await f.arrayBuffer();
+    // 2. Compute hash
+    const arrayBuf = await item.file.arrayBuffer();
     const wordArray = CryptoJS.lib.WordArray.create(arrayBuf);
     const hash = CryptoJS.SHA256(wordArray).toString();
-    setImageHash(hash);
+    updateItem(item.id, { imageHash: hash });
 
-    // Check duplicate
+    // 3. Check duplicate
     const { data: existing } = await supabase
       .from("snapshots")
       .select("id")
@@ -77,277 +41,261 @@ export default function ImportScreenshots() {
       .maybeSingle();
 
     if (existing) {
-      toast.warning("This screenshot has already been imported.");
+      updateItem(item.id, { status: "duplicate" });
       return;
     }
 
-    // Upload to storage
-    setStep("processing");
-    const filePath = `uploads/${hash}-${f.name}`;
-    const { error: uploadErr } = await supabase.storage.from("screenshots").upload(filePath, f, { upsert: true });
+    // 4. Upload to storage
+    updateItem(item.id, { status: "uploading" });
+    const filePath = `uploads/${hash}-${item.file.name}`;
+    const { error: uploadErr } = await supabase.storage
+      .from("screenshots")
+      .upload(filePath, item.file, { upsert: true });
     if (uploadErr) {
-      toast.error("Upload failed: " + uploadErr.message);
-      setStep("upload");
+      updateItem(item.id, { status: "error", error: `Upload failed: ${uploadErr.message}` });
       return;
     }
     const { data: urlData } = supabase.storage.from("screenshots").getPublicUrl(filePath);
-    setImageUrl(urlData.publicUrl);
+    updateItem(item.id, { imageUrl: urlData.publicUrl });
 
-    // Call extraction edge function
+    // 5. AI extraction
+    updateItem(item.id, { status: "extracting" });
     try {
       const { data: extractionData, error: fnErr } = await supabase.functions.invoke("extract-zwift", {
         body: { imageUrl: urlData.publicUrl },
       });
-
       if (fnErr) throw fnErr;
 
       const parsed = extractionData?.parsed || defaultExtraction;
-      // Merge metadata from EXIF into the extraction result
       parsed.image_metadata = meta;
-      setRawJson(extractionData?.raw || null);
-      setExtraction(parsed);
-      setStep("review");
+      updateItem(item.id, {
+        status: "ready",
+        extraction: parsed,
+        rawJson: extractionData?.raw || null,
+        imageHash: hash,
+      });
     } catch (err: any) {
-      toast.error("Extraction failed. Please fill in values manually.");
-      setExtraction({ ...defaultExtraction, image_metadata: meta });
-      setStep("review");
+      updateItem(item.id, {
+        status: "ready",
+        extraction: { ...defaultExtraction, image_metadata: meta },
+        error: "Extraction failed — review manually",
+        imageHash: hash,
+      });
     }
-  }, []);
+  }, [updateItem]);
+
+  const onDrop = useCallback(
+    async (accepted: File[]) => {
+      if (accepted.length === 0) return;
+
+      const newItems: BulkImportItem[] = accepted.map((f) => ({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        file: f,
+        preview: URL.createObjectURL(f),
+        status: "pending" as const,
+        metadata: defaultMetadata,
+        extraction: defaultExtraction,
+      }));
+
+      setItems((prev) => [...prev, ...newItems]);
+
+      // Process files sequentially to avoid rate limiting
+      if (processingRef.current) return; // already processing a batch
+      processingRef.current = true;
+      setIsProcessing(true);
+
+      // Get all pending items (including just-added ones)
+      const allPending = [...newItems];
+      for (const item of allPending) {
+        try {
+          await processFile(item);
+        } catch (err: any) {
+          updateItem(item.id, { status: "error", error: err.message || "Unexpected error" });
+        }
+      }
+
+      processingRef.current = false;
+      setIsProcessing(false);
+    },
+    [processFile, updateItem]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
-    maxFiles: 1,
+    maxFiles: 20,
+    multiple: true,
   });
 
-  const updateField = (section: string, field: string, value: any) => {
-    setExtraction((prev) => {
-      if (section === "root") return { ...prev, [field]: value };
-      return { ...prev, [section]: { ...(prev as any)[section], [field]: value } };
-    });
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      // Determine captured_at: prefer EXIF, then file time, then now()
-      const capturedAt = metadata.captured_at || new Date().toISOString();
-
-      const { data: snap, error: snapErr } = await supabase
-        .from("snapshots")
-        .insert({
-          source: "upload" as string,
-          screen_type: extraction.screen_type,
-          image_url: imageUrl,
-          image_hash: imageHash,
-          raw_extraction_json: rawJson as any,
-          parsed_data_json: extraction as any,
-          overall_confidence: extraction.confidence.overall,
-          captured_at: capturedAt,
-          timezone_offset_minutes: metadata.timezone_offset_minutes,
-          metadata_json: metadata as any,
+  const onUpdateField = useCallback(
+    (id: string, section: string, field: string, value: any) => {
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== id) return item;
+          const ext = { ...item.extraction };
+          if (section === "root") {
+            (ext as any)[field] = value;
+          } else {
+            (ext as any)[section] = { ...(ext as any)[section], [field]: value };
+          }
+          return { ...item, extraction: ext };
         })
-        .select()
-        .single();
-
-      if (snapErr) throw snapErr;
-
-      const cp = extraction.career_progress;
-      const perf = extraction.performance;
-      const fit = extraction.fitness_trends;
-      const ts = extraction.training_status;
-
-      await Promise.all([
-        supabase.from("progress_report_metrics").insert({
-          snapshot_id: snap.id,
-          level: extraction.level,
-          this_ride_xp: cp.this_ride_xp, xp_current: cp.xp_current, xp_target: cp.xp_target,
-          achievements_current: cp.achievements_current, achievements_target: cp.achievements_target,
-          route_badges_current: cp.route_badges_current, route_badges_target: cp.route_badges_target,
-          challenge_name: cp.challenge_name,
-          challenge_stage_current: cp.challenge_stage_current, challenge_stage_target: cp.challenge_stage_target,
-          challenge_this_ride_km: cp.challenge_this_ride_km,
-          challenge_progress_km: cp.challenge_progress_km, challenge_target_km: cp.challenge_target_km,
-        }),
-        supabase.from("performance_metrics").insert({
-          snapshot_id: snap.id, ...perf,
-        }),
-        supabase.from("fitness_trends").insert({
-          snapshot_id: snap.id, ...fit,
-        }),
-        supabase.from("training_status").insert({
-          snapshot_id: snap.id, ...ts,
-        }),
-      ]);
-
-      queryClient.invalidateQueries({ queryKey: ["snapshots"] });
-      toast.success("Snapshot saved successfully!");
-      setStep("done");
-    } catch (err: any) {
-      toast.error("Save failed: " + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const renderField = (section: string, field: string, label: string, type: "number" | "text" = "number") => (
-    <div key={field}>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Input
-        type={type}
-        value={(section === "root" ? (extraction as any)[field] : (extraction as any)[section]?.[field]) ?? ""}
-        onChange={(e) => updateField(section, field, type === "number" ? Number(e.target.value) : e.target.value)}
-        className="mt-1 bg-secondary border-border font-mono text-sm"
-      />
-    </div>
+      );
+    },
+    []
   );
 
-  const capturedLabel = metadata.captured_at
-    ? new Date(metadata.captured_at).toLocaleString()
-    : "Not available";
+  const onRemove = useCallback((id: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  }, []);
+
+  const readyItems = items.filter((i) => i.status === "ready");
+  const savedItems = items.filter((i) => i.status === "saved");
+  const allDone = items.length > 0 && items.every((i) => i.status === "saved" || i.status === "duplicate" || i.status === "error");
+
+  const handleSaveAll = async () => {
+    if (readyItems.length === 0) return;
+    setIsSaving(true);
+
+    for (const item of readyItems) {
+      updateItem(item.id, { status: "saving" });
+      try {
+        const capturedAt = item.metadata.captured_at || new Date().toISOString();
+
+        const { data: snap, error: snapErr } = await supabase
+          .from("snapshots")
+          .insert({
+            source: "upload" as string,
+            screen_type: item.extraction.screen_type,
+            image_url: item.imageUrl,
+            image_hash: item.imageHash,
+            raw_extraction_json: item.rawJson as any,
+            parsed_data_json: item.extraction as any,
+            overall_confidence: item.extraction.confidence.overall,
+            captured_at: capturedAt,
+            timezone_offset_minutes: item.metadata.timezone_offset_minutes,
+            metadata_json: item.metadata as any,
+          })
+          .select()
+          .single();
+
+        if (snapErr) throw snapErr;
+
+        const cp = item.extraction.career_progress;
+        const perf = item.extraction.performance;
+        const fit = item.extraction.fitness_trends;
+        const ts = item.extraction.training_status;
+
+        await Promise.all([
+          supabase.from("progress_report_metrics").insert({
+            snapshot_id: snap.id,
+            level: item.extraction.level,
+            this_ride_xp: cp.this_ride_xp, xp_current: cp.xp_current, xp_target: cp.xp_target,
+            achievements_current: cp.achievements_current, achievements_target: cp.achievements_target,
+            route_badges_current: cp.route_badges_current, route_badges_target: cp.route_badges_target,
+            challenge_name: cp.challenge_name,
+            challenge_stage_current: cp.challenge_stage_current, challenge_stage_target: cp.challenge_stage_target,
+            challenge_this_ride_km: cp.challenge_this_ride_km,
+            challenge_progress_km: cp.challenge_progress_km, challenge_target_km: cp.challenge_target_km,
+          }),
+          supabase.from("performance_metrics").insert({ snapshot_id: snap.id, ...perf }),
+          supabase.from("fitness_trends").insert({ snapshot_id: snap.id, ...fit }),
+          supabase.from("training_status").insert({ snapshot_id: snap.id, ...ts }),
+        ]);
+
+        updateItem(item.id, { status: "saved" });
+      } catch (err: any) {
+        updateItem(item.id, { status: "error", error: `Save failed: ${err.message}` });
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["snapshots"] });
+    setIsSaving(false);
+    toast.success(`${readyItems.length} snapshot(s) saved!`);
+  };
+
+  const handleClearAll = () => {
+    items.forEach((item) => URL.revokeObjectURL(item.preview));
+    setItems([]);
+  };
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Import Screenshots</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Import Screenshots</h1>
+        {items.length > 0 && (
+          <Button variant="outline" size="sm" onClick={handleClearAll} className="text-xs">
+            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+            Clear All
+          </Button>
+        )}
+      </div>
 
-      {step === "upload" && (
+      {/* Drop zone — always visible when not all done */}
+      {!allDone && (
         <div
           {...getRootProps()}
-          className={`border-2 border-dashed rounded-xl p-16 text-center cursor-pointer transition-colors ${
+          className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors mb-6 ${
             isDragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
           }`}
         >
           <input {...getInputProps()} />
-          <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-lg font-medium">Drop your Zwift screenshot here</p>
-          <p className="text-sm text-muted-foreground mt-2">or click to browse — PNG, JPG, WebP</p>
+          <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+          <p className="text-base font-medium">Drop Zwift screenshots here</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Multiple files supported — PNG, JPG, WebP (up to 20)
+          </p>
         </div>
       )}
 
-      {step === "processing" && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-          <p className="text-lg font-medium">Extracting data from screenshot...</p>
-          <p className="text-sm text-muted-foreground mt-1">AI is analyzing your Zwift progress report</p>
-        </div>
-      )}
-
-      {step === "review" && (
-        <div>
-          {/* Metadata info bar */}
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-border mb-4">
-            <span className="text-xs text-muted-foreground">Captured:</span>
-            <span className="text-sm font-mono text-foreground">{capturedLabel}</span>
-            <MetadataSourceBadge source={metadata.metadata_source} />
-          </div>
-
-          {extraction.confidence.overall < 0.85 && (
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30 mb-6">
-              <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-warning">Low confidence extraction</p>
-                <p className="text-xs text-muted-foreground">
-                  Confidence: {(extraction.confidence.overall * 100).toFixed(0)}% — please review all fields before saving.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-6">
-            {preview && (
-              <div className="flex-shrink-0">
-                <img src={preview} alt="Screenshot" className="w-48 rounded-lg border border-border" />
-              </div>
+      {/* Queue */}
+      {items.length > 0 && (
+        <div className="space-y-3">
+          {/* Summary bar */}
+          <div className="flex items-center justify-between px-1">
+            <p className="text-xs text-muted-foreground">
+              {items.length} file{items.length !== 1 ? "s" : ""} •{" "}
+              {readyItems.length} ready •{" "}
+              {savedItems.length} saved •{" "}
+              {items.filter((i) => i.status === "duplicate").length} duplicates
+            </p>
+            {readyItems.length > 0 && (
+              <Button
+                onClick={handleSaveAll}
+                disabled={isSaving || isProcessing}
+                size="sm"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-1.5" />
+                )}
+                Save All ({readyItems.length})
+              </Button>
             )}
-
-            <div className="flex-1">
-              <Tabs defaultValue="career">
-                <TabsList className="bg-secondary mb-4">
-                  <TabsTrigger value="career">Career</TabsTrigger>
-                  <TabsTrigger value="performance">Performance</TabsTrigger>
-                  <TabsTrigger value="fitness">Fitness</TabsTrigger>
-                  <TabsTrigger value="training">Training</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="career" className="space-y-3">
-                  {renderField("root", "level", "Level")}
-                  <div className="grid grid-cols-3 gap-3">
-                    {renderField("career_progress", "this_ride_xp", "This Ride XP")}
-                    {renderField("career_progress", "xp_current", "XP Current")}
-                    {renderField("career_progress", "xp_target", "XP Target")}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {renderField("career_progress", "achievements_current", "Achievements")}
-                    {renderField("career_progress", "achievements_target", "Achievements Target")}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {renderField("career_progress", "route_badges_current", "Route Badges")}
-                    {renderField("career_progress", "route_badges_target", "Route Badges Target")}
-                  </div>
-                  {renderField("career_progress", "challenge_name", "Challenge Name", "text")}
-                  <div className="grid grid-cols-3 gap-3">
-                    {renderField("career_progress", "challenge_stage_current", "Stage Current")}
-                    {renderField("career_progress", "challenge_stage_target", "Stage Target")}
-                    {renderField("career_progress", "challenge_target_km", "Target km")}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="performance" className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    {renderField("performance", "best_5s_w", "5s Power (W)")}
-                    {renderField("performance", "best_1m_w", "1m Power (W)")}
-                    {renderField("performance", "best_5m_w", "5m Power (W)")}
-                    {renderField("performance", "best_20m_w", "20m Power (W)")}
-                    {renderField("performance", "ftp_w", "FTP (W)")}
-                    {renderField("performance", "racing_score", "Racing Score")}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="fitness" className="space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
-                    {renderField("fitness_trends", "weekly_this_ride_km", "This Ride km")}
-                    {renderField("fitness_trends", "weekly_progress_km", "Weekly Progress km")}
-                    {renderField("fitness_trends", "weekly_goal_km", "Weekly Goal km")}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {renderField("fitness_trends", "streak_weeks", "Streak (weeks)")}
-                    {renderField("fitness_trends", "total_distance_km", "Total Distance km")}
-                    {renderField("fitness_trends", "total_elevation_m", "Total Elevation m")}
-                    {renderField("fitness_trends", "total_energy_kj", "Total Energy kJ")}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="training" className="space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
-                    {renderField("training_status", "training_score", "Training Score")}
-                    {renderField("training_status", "training_score_delta", "Delta")}
-                    {renderField("training_status", "freshness_state", "Freshness State", "text")}
-                  </div>
-                </TabsContent>
-              </Tabs>
-
-              <div className="flex gap-3 mt-6">
-                <Button onClick={handleSave} disabled={saving} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-                  Save Snapshot
-                </Button>
-                <Button variant="outline" onClick={() => { setStep("upload"); setFile(null); setPreview(""); }}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
           </div>
+
+          {items.map((item) => (
+            <BulkImportCard
+              key={item.id}
+              item={item}
+              onUpdateField={onUpdateField}
+              onRemove={onRemove}
+            />
+          ))}
         </div>
       )}
 
-      {step === "done" && (
-        <div className="text-center py-20">
+      {/* All done */}
+      {allDone && savedItems.length > 0 && (
+        <div className="text-center py-12">
           <Check className="w-16 h-16 mx-auto text-success mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Snapshot Saved!</h2>
+          <h2 className="text-xl font-semibold mb-2">
+            {savedItems.length} Snapshot{savedItems.length !== 1 ? "s" : ""} Saved!
+          </h2>
           <p className="text-muted-foreground mb-6">Your Zwift progress has been recorded.</p>
-          <Button onClick={() => { setStep("upload"); setFile(null); setPreview(""); }}>
-            Import Another
-          </Button>
+          <Button onClick={handleClearAll}>Import More</Button>
         </div>
       )}
     </div>
