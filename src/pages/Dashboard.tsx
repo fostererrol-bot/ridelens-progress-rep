@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trophy, Zap, Activity, Brain } from "lucide-react";
+import { Trophy, Zap, Activity, Brain, Upload } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { ProgressBar } from "@/components/ProgressBar";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
@@ -26,9 +26,21 @@ export default function Dashboard() {
 
   if (snapshots.length === 0) {
     return (
-      <div className="text-center py-20">
-        <h2 className="text-xl font-semibold mb-2">No data yet</h2>
-        <p className="text-muted-foreground">Import your first Zwift screenshot to get started.</p>
+      <div className="flex flex-col items-center justify-center py-24 px-4">
+        <div className="rounded-full bg-primary/10 p-5 mb-5">
+          <Upload className="w-10 h-10 text-primary" />
+        </div>
+        <h2 className="text-xl font-semibold mb-2">No rides yet</h2>
+        <p className="text-muted-foreground text-center max-w-sm mb-6">
+          Import your Zwift screenshots to start tracking your progress, performance, and fitness trends.
+        </p>
+        <a
+          href="/import"
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          <Upload className="w-4 h-4" />
+          Import Screenshots
+        </a>
       </div>
     );
   }
