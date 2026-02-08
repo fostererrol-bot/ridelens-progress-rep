@@ -166,37 +166,46 @@ export type Database = {
       }
       snapshots: {
         Row: {
+          captured_at: string | null
           created_at: string
           id: string
           image_hash: string | null
           image_url: string | null
+          metadata_json: Json | null
           overall_confidence: number | null
           parsed_data_json: Json | null
           raw_extraction_json: Json | null
           screen_type: string
           source: string
+          timezone_offset_minutes: number | null
         }
         Insert: {
+          captured_at?: string | null
           created_at?: string
           id?: string
           image_hash?: string | null
           image_url?: string | null
+          metadata_json?: Json | null
           overall_confidence?: number | null
           parsed_data_json?: Json | null
           raw_extraction_json?: Json | null
           screen_type?: string
           source?: string
+          timezone_offset_minutes?: number | null
         }
         Update: {
+          captured_at?: string | null
           created_at?: string
           id?: string
           image_hash?: string | null
           image_url?: string | null
+          metadata_json?: Json | null
           overall_confidence?: number | null
           parsed_data_json?: Json | null
           raw_extraction_json?: Json | null
           screen_type?: string
           source?: string
+          timezone_offset_minutes?: number | null
         }
         Relationships: []
       }

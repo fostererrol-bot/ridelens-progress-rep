@@ -1,8 +1,9 @@
 import { Trophy, Zap, Activity, Brain, Clock } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { ProgressBar } from "@/components/ProgressBar";
-import { DeltaIndicator } from "@/components/DeltaIndicator";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
+import { MetadataSourceBadge } from "@/components/MetadataSourceBadge";
+import { ChangesSinceLastReport } from "@/components/ChangesSinceLastReport";
 import { useLatestSnapshots } from "@/hooks/useSnapshots";
 import { useSeedData } from "@/hooks/useSeedData";
 import { motion } from "framer-motion";
@@ -21,7 +22,7 @@ export default function Dashboard() {
   }
 
   const latest = data?.[0];
-  const prev = data?.[1];
+  const prev = data?.[1] || null;
 
   if (!latest) {
     return (
@@ -37,17 +38,26 @@ export default function Dashboard() {
   const fit = latest.fitness;
   const train = latest.training;
 
+  // Determine display date: prefer captured_at, fallback to created_at
+  const displayDate = latest.snapshot.captured_at || latest.snapshot.created_at;
+  const metadataJson = latest.snapshot.metadata_json as any;
+  const metadataSource: "exif" | "file" | "unknown" = metadataJson?.metadata_source || "unknown";
+
   return (
     <div>
+      {/* Header with captured_at */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-          <Clock className="w-3.5 h-3.5" />
-          Latest: {format(new Date(latest.snapshot.created_at), "PPp")}
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            Captured: {format(new Date(displayDate), "dd MMM yyyy, HH:mm")}
+          </span>
+          <MetadataSourceBadge source={metadataSource} />
           {latest.snapshot.source === "seed" && (
-            <span className="text-xs bg-secondary px-2 py-0.5 rounded-full ml-2">Seed Data</span>
+            <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">Seed Data</span>
           )}
-        </p>
+        </div>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
@@ -94,10 +104,10 @@ export default function Dashboard() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "5s Power", value: perf.best_5s_w, prev: prev?.performance?.best_5s_w },
-                  { label: "1m Power", value: perf.best_1m_w, prev: prev?.performance?.best_1m_w },
-                  { label: "5m Power", value: perf.best_5m_w, prev: prev?.performance?.best_5m_w },
-                  { label: "20m Power", value: perf.best_20m_w, prev: prev?.performance?.best_20m_w },
+                  { label: "5s Power", value: perf.best_5s_w },
+                  { label: "1m Power", value: perf.best_1m_w },
+                  { label: "5m Power", value: perf.best_5m_w },
+                  { label: "20m Power", value: perf.best_20m_w },
                 ].map((m) => (
                   <div key={m.label}>
                     <span className="metric-label">{m.label}</span>
@@ -180,27 +190,8 @@ export default function Dashboard() {
         </MetricCard>
       </div>
 
-      {/* Delta Strip */}
-      {prev && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="rounded-xl border border-border bg-card p-4 card-glow"
-        >
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Changes since previous snapshot
-          </h3>
-          <div className="flex flex-wrap gap-4">
-            <DeltaIndicator label="FTP" current={latest.performance?.ftp_w ?? 0} previous={prev.performance?.ftp_w} unit="W" />
-            <DeltaIndicator label="Training Score" current={Number(latest.training?.training_score ?? 0)} previous={Number(prev.training?.training_score)} />
-            <DeltaIndicator label="Streak" current={latest.fitness?.streak_weeks ?? 0} previous={prev.fitness?.streak_weeks} unit=" wks" />
-            <DeltaIndicator label="Total Distance" current={Number(latest.fitness?.total_distance_km ?? 0)} previous={Number(prev.fitness?.total_distance_km)} unit=" km" />
-            <DeltaIndicator label="5s Power" current={latest.performance?.best_5s_w ?? 0} previous={prev.performance?.best_5s_w} unit="W" />
-            <DeltaIndicator label="Racing Score" current={latest.performance?.racing_score ?? 0} previous={prev.performance?.racing_score} />
-          </div>
-        </motion.div>
-      )}
+      {/* Change Since Last Report */}
+      <ChangesSinceLastReport latest={latest} previous={prev} />
     </div>
   );
 }

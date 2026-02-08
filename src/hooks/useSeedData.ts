@@ -19,6 +19,12 @@ export function useSeedData() {
           source: "seed" as string,
           screen_type: "progress_report",
           overall_confidence: 1.0,
+          captured_at: new Date().toISOString(),
+          metadata_json: {
+            captured_at: null,
+            timezone_offset_minutes: null,
+            metadata_source: "unknown",
+          } as any,
           parsed_data_json: ({
             screen_type: "progress_report",
             level: 61,
@@ -40,6 +46,11 @@ export function useSeedData() {
             },
             training_status: {
               training_score: 23.2, training_score_delta: 0.9, freshness_state: "FRESH",
+            },
+            image_metadata: {
+              captured_at: null,
+              timezone_offset_minutes: null,
+              metadata_source: "unknown",
             },
             confidence: { overall: 1.0 },
           }) as any,

@@ -8,10 +8,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ExtractionResult } from "@/types/zwift";
+import type { ExtractionResult, ImageMetadata } from "@/types/zwift";
+import { extractImageMetadata } from "@/hooks/useImageMetadata";
+import { MetadataSourceBadge } from "@/components/MetadataSourceBadge";
 import CryptoJS from "crypto-js";
 
 type Step = "upload" | "processing" | "review" | "done";
+
+const defaultMetadata: ImageMetadata = {
+  captured_at: null,
+  timezone_offset_minutes: null,
+  metadata_source: "unknown",
+};
 
 const defaultExtraction: ExtractionResult = {
   screen_type: "progress_report",
@@ -29,6 +37,7 @@ const defaultExtraction: ExtractionResult = {
     streak_weeks: 0, total_distance_km: 0, total_elevation_m: 0, total_energy_kj: 0,
   },
   training_status: { training_score: 0, training_score_delta: 0, freshness_state: "" },
+  image_metadata: defaultMetadata,
   confidence: { overall: 0 },
 };
 
@@ -40,6 +49,7 @@ export default function ImportScreenshots() {
   const [imageHash, setImageHash] = useState<string>("");
   const [extraction, setExtraction] = useState<ExtractionResult>(defaultExtraction);
   const [rawJson, setRawJson] = useState<any>(null);
+  const [metadata, setMetadata] = useState<ImageMetadata>(defaultMetadata);
   const [saving, setSaving] = useState(false);
   const queryClient = useQueryClient();
 
@@ -48,6 +58,10 @@ export default function ImportScreenshots() {
     if (!f) return;
     setFile(f);
     setPreview(URL.createObjectURL(f));
+
+    // Extract metadata first
+    const meta = await extractImageMetadata(f);
+    setMetadata(meta);
 
     // Compute hash
     const arrayBuf = await f.arrayBuffer();
@@ -88,12 +102,14 @@ export default function ImportScreenshots() {
       if (fnErr) throw fnErr;
 
       const parsed = extractionData?.parsed || defaultExtraction;
+      // Merge metadata from EXIF into the extraction result
+      parsed.image_metadata = meta;
       setRawJson(extractionData?.raw || null);
       setExtraction(parsed);
       setStep("review");
     } catch (err: any) {
       toast.error("Extraction failed. Please fill in values manually.");
-      setExtraction(defaultExtraction);
+      setExtraction({ ...defaultExtraction, image_metadata: meta });
       setStep("review");
     }
   }, []);
@@ -114,6 +130,9 @@ export default function ImportScreenshots() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Determine captured_at: prefer EXIF, then file time, then now()
+      const capturedAt = metadata.captured_at || new Date().toISOString();
+
       const { data: snap, error: snapErr } = await supabase
         .from("snapshots")
         .insert({
@@ -124,6 +143,9 @@ export default function ImportScreenshots() {
           raw_extraction_json: rawJson as any,
           parsed_data_json: extraction as any,
           overall_confidence: extraction.confidence.overall,
+          captured_at: capturedAt,
+          timezone_offset_minutes: metadata.timezone_offset_minutes,
+          metadata_json: metadata as any,
         })
         .select()
         .single();
@@ -180,6 +202,10 @@ export default function ImportScreenshots() {
     </div>
   );
 
+  const capturedLabel = metadata.captured_at
+    ? new Date(metadata.captured_at).toLocaleString()
+    : "Not available";
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Import Screenshots</h1>
@@ -208,6 +234,13 @@ export default function ImportScreenshots() {
 
       {step === "review" && (
         <div>
+          {/* Metadata info bar */}
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-border mb-4">
+            <span className="text-xs text-muted-foreground">Captured:</span>
+            <span className="text-sm font-mono text-foreground">{capturedLabel}</span>
+            <MetadataSourceBadge source={metadata.metadata_source} />
+          </div>
+
           {extraction.confidence.overall < 0.85 && (
             <div className="flex items-center gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30 mb-6">
               <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />

@@ -15,6 +15,15 @@ IMPORTANT:
 - If a value is not visible or unclear, use 0 and set confidence lower
 - Return ONLY valid JSON, no markdown
 
+Metadata rule:
+- If the platform provides image metadata (EXIF), extract DateTimeOriginal (or closest equivalent).
+- Populate image_metadata.captured_at with ISO format if available.
+- Populate image_metadata.timezone_offset_minutes if present in EXIF offset tags.
+- Set image_metadata.metadata_source = "exif" if DateTimeOriginal exists.
+- If no EXIF capture time exists but file timestamp exists, use that with metadata_source = "file".
+- Otherwise set captured_at to null and metadata_source to "unknown".
+- Do not guess timestamps.
+
 {
   "screen_type": "progress_report",
   "level": 0,
@@ -55,11 +64,15 @@ IMPORTANT:
     "training_score_delta": 0,
     "freshness_state": ""
   },
+  "image_metadata": {
+    "captured_at": null,
+    "timezone_offset_minutes": null,
+    "metadata_source": "unknown"
+  },
   "confidence": {
     "overall": 0.0
   }
 }`;
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

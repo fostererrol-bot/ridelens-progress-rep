@@ -1,6 +1,9 @@
 export interface Snapshot {
   id: string;
   created_at: string;
+  captured_at: string | null;
+  timezone_offset_minutes: number | null;
+  metadata_json: ImageMetadata | null;
   source: string;
   screen_type: string;
   image_url: string | null;
@@ -8,6 +11,14 @@ export interface Snapshot {
   raw_extraction_json: any;
   parsed_data_json: any;
   overall_confidence: number;
+}
+
+export interface ImageMetadata {
+  captured_at: string | null;
+  timezone_offset_minutes: number | null;
+  metadata_source: "exif" | "file" | "unknown";
+  camera_make?: string;
+  camera_model?: string;
 }
 
 export interface ProgressReportMetrics {
@@ -108,6 +119,7 @@ export interface ExtractionResult {
     training_score_delta: number;
     freshness_state: string;
   };
+  image_metadata: ImageMetadata;
   confidence: {
     overall: number;
   };

@@ -2,14 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { FullSnapshot } from "@/types/zwift";
 
+/** Sort key: prefer captured_at, fallback to created_at */
+const sortColumn = "captured_at";
+
 export function useLatestSnapshots(limit = 2) {
   return useQuery({
     queryKey: ["snapshots", "latest", limit],
     queryFn: async (): Promise<FullSnapshot[]> => {
+      // Fetch ordering by captured_at with nulls last (fallback created_at)
       const { data: snapshots, error } = await supabase
         .from("snapshots")
         .select("*")
-        .order("created_at", { ascending: false })
+        .order(sortColumn, { ascending: false, nullsFirst: false })
         .limit(limit);
 
       if (error) throw error;
@@ -42,7 +46,7 @@ export function useAllSnapshots() {
       const { data: snapshots, error } = await supabase
         .from("snapshots")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order(sortColumn, { ascending: false, nullsFirst: false });
 
       if (error) throw error;
       if (!snapshots || snapshots.length === 0) return [];
