@@ -8,11 +8,9 @@ import { RideMenuDashboard } from "@/components/RideMenuDashboard";
 import { SnapshotSelector } from "@/components/SnapshotSelector";
 import { SnapshotThumbnail } from "@/components/SnapshotThumbnail";
 import { useAllSnapshots } from "@/hooks/useSnapshots";
-import { useSeedData } from "@/hooks/useSeedData";
 import { motion } from "framer-motion";
 
 export default function Dashboard() {
-  useSeedData();
   const { data, isLoading } = useAllSnapshots();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
