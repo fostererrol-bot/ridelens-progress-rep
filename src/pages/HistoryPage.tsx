@@ -42,7 +42,9 @@ export default function HistoryPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-secondary/50">
+                <TableHead className="w-12">#</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>File</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Confidence</TableHead>
@@ -52,9 +54,21 @@ export default function HistoryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item) => (
+              {data.map((item, idx) => {
+                // Extract filename from image_url (e.g. "uploads/abc123-screenshot.png" → "screenshot.png")
+                const rawUrl = item.snapshot.image_url || "";
+                const urlPath = rawUrl.split("/").pop() || "";
+                // Remove the hash prefix (everything before the first dash after the hash)
+                const fileName = urlPath.includes("-") ? urlPath.substring(urlPath.indexOf("-") + 1) : urlPath;
+                const displayDate = item.snapshot.captured_at || item.snapshot.created_at;
+
+                return (
                 <TableRow key={item.snapshot.id} className="hover:bg-secondary/30 cursor-pointer" onClick={() => setDetailSnap(item)}>
-                  <TableCell className="font-mono text-sm">{format(new Date(item.snapshot.created_at), "PP p")}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">{data.length - idx}</TableCell>
+                  <TableCell className="font-mono text-sm">{format(new Date(displayDate), "PP p")}</TableCell>
+                  <TableCell className="text-sm max-w-[180px] truncate" title={fileName}>
+                    {fileName || "—"}
+                  </TableCell>
                   <TableCell><Badge variant="secondary" className="text-xs">{item.snapshot.source}</Badge></TableCell>
                   <TableCell className="text-sm">{item.snapshot.screen_type}</TableCell>
                   <TableCell>
@@ -75,7 +89,8 @@ export default function HistoryPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </div>
