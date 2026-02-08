@@ -1,0 +1,4 @@
+project_id = "mlcjadrcgdverlqgqsur"
+
+[functions.extract-zwift]
+verify_jwt = false
