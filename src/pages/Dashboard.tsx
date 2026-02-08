@@ -6,6 +6,7 @@ import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { ChangesSinceLastReport } from "@/components/ChangesSinceLastReport";
 import { RideMenuDashboard } from "@/components/RideMenuDashboard";
 import { SnapshotSelector } from "@/components/SnapshotSelector";
+import { SnapshotThumbnail } from "@/components/SnapshotThumbnail";
 import { useAllSnapshots } from "@/hooks/useSnapshots";
 import { useSeedData } from "@/hooks/useSeedData";
 import { motion } from "framer-motion";
@@ -49,13 +50,18 @@ export default function Dashboard() {
   return (
     <div>
       {/* Header */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-5">
         <h1 className="text-2xl font-bold mb-3">Dashboard</h1>
-        <SnapshotSelector
-          snapshots={snapshots}
-          currentIndex={idx}
-          onIndexChange={setSelectedIndex}
-        />
+        <div className="flex items-start gap-4">
+          <SnapshotThumbnail imageUrl={current.snapshot.image_url} />
+          <div className="flex-1 min-w-0">
+            <SnapshotSelector
+              snapshots={snapshots}
+              currentIndex={idx}
+              onIndexChange={setSelectedIndex}
+            />
+          </div>
+        </div>
       </motion.div>
 
       {/* Ride Menu layout */}
