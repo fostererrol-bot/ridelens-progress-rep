@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MetadataSourceBadge } from "@/components/MetadataSourceBadge";
 import type { FullSnapshot } from "@/types/zwift";
 
 export default function HistoryPage() {
@@ -38,15 +39,16 @@ export default function HistoryPage() {
       {!data?.length ? (
         <p className="text-muted-foreground">No snapshots yet.</p>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
+        <div className="rounded-xl border border-border overflow-hidden overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-secondary/50">
                 <TableHead className="w-12">#</TableHead>
-                <TableHead>Date</TableHead>
                 <TableHead>File</TableHead>
+                <TableHead>Captured</TableHead>
+                <TableHead>Uploaded</TableHead>
+                <TableHead>Stamp</TableHead>
                 <TableHead>Source</TableHead>
-                <TableHead>Type</TableHead>
                 <TableHead>Confidence</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead>FTP</TableHead>
@@ -55,22 +57,30 @@ export default function HistoryPage() {
             </TableHeader>
             <TableBody>
               {data.map((item, idx) => {
-                // Extract filename from image_url (e.g. "uploads/abc123-screenshot.png" → "screenshot.png")
                 const rawUrl = item.snapshot.image_url || "";
                 const urlPath = rawUrl.split("/").pop() || "";
-                // Remove the hash prefix (everything before the first dash after the hash)
                 const fileName = urlPath.includes("-") ? urlPath.substring(urlPath.indexOf("-") + 1) : urlPath;
-                const displayDate = item.snapshot.captured_at || item.snapshot.created_at;
+                const capturedAt = item.snapshot.captured_at;
+                const createdAt = item.snapshot.created_at;
+                const metaJson = item.snapshot.metadata_json as any;
+                const metaSource: "exif" | "file" | "unknown" = metaJson?.metadata_source || "unknown";
 
                 return (
                 <TableRow key={item.snapshot.id} className="hover:bg-secondary/30 cursor-pointer" onClick={() => setDetailSnap(item)}>
                   <TableCell className="font-mono text-xs text-muted-foreground">{data.length - idx}</TableCell>
-                  <TableCell className="font-mono text-sm">{format(new Date(displayDate), "PP p")}</TableCell>
-                  <TableCell className="text-sm max-w-[180px] truncate" title={fileName}>
+                  <TableCell className="text-sm max-w-[160px] truncate" title={fileName}>
                     {fileName || "—"}
                   </TableCell>
+                  <TableCell className="font-mono text-sm whitespace-nowrap">
+                    {capturedAt ? format(new Date(capturedAt), "dd MMM yyyy, HH:mm") : "—"}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                    {format(new Date(createdAt), "dd MMM yyyy, HH:mm")}
+                  </TableCell>
+                  <TableCell>
+                    <MetadataSourceBadge source={metaSource} />
+                  </TableCell>
                   <TableCell><Badge variant="secondary" className="text-xs">{item.snapshot.source}</Badge></TableCell>
-                  <TableCell className="text-sm">{item.snapshot.screen_type}</TableCell>
                   <TableCell>
                     <span className={`font-mono text-sm ${Number(item.snapshot.overall_confidence) >= 0.85 ? "delta-up" : "text-warning"}`}>
                       {(Number(item.snapshot.overall_confidence) * 100).toFixed(0)}%
@@ -103,6 +113,40 @@ export default function HistoryPage() {
           </DialogHeader>
           {detailSnap && (
             <div className="space-y-4">
+              {/* Timestamp details */}
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
+                <div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Captured</span>
+                  <p className="font-mono text-sm mt-0.5">
+                    {detailSnap.snapshot.captured_at
+                      ? format(new Date(detailSnap.snapshot.captured_at), "dd MMM yyyy, HH:mm:ss")
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Uploaded</span>
+                  <p className="font-mono text-sm mt-0.5">
+                    {format(new Date(detailSnap.snapshot.created_at), "dd MMM yyyy, HH:mm:ss")}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Timestamp Source</span>
+                  <div className="mt-1">
+                    <MetadataSourceBadge source={(detailSnap.snapshot.metadata_json as any)?.metadata_source || "unknown"} />
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">File</span>
+                  <p className="text-sm mt-0.5 truncate">
+                    {(() => {
+                      const u = detailSnap.snapshot.image_url || "";
+                      const p = u.split("/").pop() || "";
+                      return p.includes("-") ? p.substring(p.indexOf("-") + 1) : p || "—";
+                    })()}
+                  </p>
+                </div>
+              </div>
+
               {detailSnap.snapshot.image_url && (
                 <img src={detailSnap.snapshot.image_url} alt="Screenshot" className="w-full rounded-lg border border-border" />
               )}
