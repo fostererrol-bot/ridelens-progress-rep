@@ -156,28 +156,40 @@ Metadata rule:
   }
 }`;
 
-async function callAI(apiKey: string, prompt: string, imageUrl: string) {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: imageUrl } },
-          ],
-        },
-      ],
-    }),
-  });
+async function callAI(apiKey: string, prompt: string, imageUrl: string, maxRetries = 2) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: imageUrl } },
+            ],
+          },
+        ],
+      }),
+    });
 
-  return response;
+    // Retry on transient 502/503/500 errors
+    if ((response.status === 502 || response.status === 503 || response.status === 500) && attempt < maxRetries) {
+      console.warn(`AI gateway returned ${response.status}, retrying (attempt ${attempt + 1}/${maxRetries})...`);
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); // backoff
+      continue;
+    }
+
+    return response;
+  }
+
+  // Should not reach here, but fallback
+  throw new Error("AI gateway failed after retries");
 }
 
 serve(async (req) => {
