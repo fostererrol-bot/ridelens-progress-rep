@@ -9,12 +9,15 @@ const links = [
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onNavigate?: () => void;
+}
+
+export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const location = useLocation();
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-60 border-r border-sidebar-border flex flex-col z-30"
-      style={{ background: "var(--gradient-sidebar)" }}>
+    <div className="flex flex-col h-full" style={{ background: "var(--gradient-sidebar)" }}>
       <div className="p-5 flex items-center gap-3">
         <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
           <Bike className="w-5 h-5 text-primary-foreground" />
@@ -32,6 +35,7 @@ export function AppSidebar() {
             <NavLink
               key={to}
               to={to}
+              onClick={onNavigate}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 active
                   ? "bg-sidebar-accent text-primary"
@@ -48,6 +52,6 @@ export function AppSidebar() {
       <div className="p-4 border-t border-sidebar-border">
         <p className="text-[10px] text-muted-foreground text-center">Zwift Progress Tracker v1.0</p>
       </div>
-    </aside>
+    </div>
   );
 }
