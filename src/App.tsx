@@ -9,6 +9,7 @@ import ImportScreenshots from "@/pages/ImportScreenshots";
 import HistoryPage from "@/pages/HistoryPage";
 import TrendsPage from "@/pages/TrendsPage";
 import SettingsPage from "@/pages/SettingsPage";
+import DisclaimerPage from "@/pages/DisclaimerPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/trends" element={<TrendsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/disclaimer" element={<DisclaimerPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
