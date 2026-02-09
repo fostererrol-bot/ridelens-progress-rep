@@ -32,7 +32,7 @@ export default function Dashboard() {
         </div>
         <h2 className="text-xl font-semibold mb-2">No rides yet</h2>
         <p className="text-muted-foreground text-center max-w-sm mb-6">
-          Import your Zwift screenshots to start tracking your progress, performance, and fitness trends.
+          Import your ride screenshots to start tracking your progress, performance, and fitness trends.
         </p>
         <a
           href="/import"

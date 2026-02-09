@@ -23,8 +23,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
           <Bike className="w-5 h-5 text-primary-foreground" />
         </div>
         <div>
-          <h1 className="text-sm font-bold text-foreground">Zwift Tracker</h1>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Progress</p>
+          <h1 className="text-sm font-bold text-foreground">Rider Progress Tracker</h1>
         </div>
       </div>
 
@@ -50,7 +49,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
       </nav>
 
       <div className="p-4 border-t border-sidebar-border">
-        <p className="text-[10px] text-muted-foreground text-center">Zwift Progress Tracker v1.0</p>
+        <p className="text-[10px] text-muted-foreground text-center">Rider Progress Tracker v1.0</p>
       </div>
     </div>
   );

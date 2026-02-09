@@ -23,7 +23,7 @@ export function AppLayout() {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="ml-3 text-sm font-bold text-foreground">Zwift Tracker</span>
+          <span className="ml-3 text-sm font-bold text-foreground">Rider Progress Tracker</span>
         </header>
 
         {/* Mobile drawer */}
