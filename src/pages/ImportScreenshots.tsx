@@ -23,6 +23,13 @@ export default function ImportScreenshots() {
   }, []);
 
   const processFile = useCallback(async (item: BulkImportItem) => {
+    // 0. Get authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      updateItem(item.id, { status: "error", error: "Not authenticated" });
+      return;
+    }
+
     // 1. Extract metadata
     const meta = await extractImageMetadata(item.file);
     updateItem(item.id, { metadata: meta, status: "hashing" });
@@ -47,7 +54,7 @@ export default function ImportScreenshots() {
 
     // 4. Upload to storage
     updateItem(item.id, { status: "uploading" });
-    const filePath = `uploads/${hash}-${item.file.name}`;
+    const filePath = `${user.id}/${hash}-${item.file.name}`;
     const { error: uploadErr } = await supabase.storage
       .from("screenshots")
       .upload(filePath, item.file, { upsert: true });
