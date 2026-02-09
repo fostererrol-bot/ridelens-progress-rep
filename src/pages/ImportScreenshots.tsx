@@ -193,9 +193,13 @@ export default function ImportScreenshots() {
           ? item.rideMenuExtraction?.confidence?.overall || 0
           : item.extraction.confidence.overall;
 
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
         const { data: snap, error: snapErr } = await supabase
           .from("snapshots")
           .insert({
+            user_id: user.id,
             source: "upload" as string,
             screen_type: isRideMenu ? "ride_menu" : item.extraction.screen_type,
             image_url: item.imageUrl,
