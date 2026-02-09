@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -179,15 +178,17 @@ async function callAI(apiKey: string, prompt: string, imageUrl: string, maxRetri
       }),
     });
 
+    // Retry on transient 502/503/500 errors
     if ((response.status === 502 || response.status === 503 || response.status === 500) && attempt < maxRetries) {
       console.warn(`AI gateway returned ${response.status}, retrying (attempt ${attempt + 1}/${maxRetries})...`);
-      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); // backoff
       continue;
     }
 
     return response;
   }
 
+  // Should not reach here, but fallback
   throw new Error("AI gateway failed after retries");
 }
 
@@ -197,30 +198,6 @@ serve(async (req) => {
   }
 
   try {
-    // --- Authentication check ---
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    // --- End authentication check ---
-
     const { imageUrl } = await req.json();
     if (!imageUrl) {
       return new Response(JSON.stringify({ error: "imageUrl is required" }), {
