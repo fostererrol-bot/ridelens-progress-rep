@@ -10,6 +10,7 @@ import HistoryPage from "@/pages/HistoryPage";
 import TrendsPage from "@/pages/TrendsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import DisclaimerPage from "@/pages/DisclaimerPage";
+import HowToUsePage from "@/pages/HowToUsePage";
 import LandingPage from "@/pages/LandingPage";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/trends" element={<TrendsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/how-to-use" element={<HowToUsePage />} />
             <Route path="/disclaimer" element={<DisclaimerPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
