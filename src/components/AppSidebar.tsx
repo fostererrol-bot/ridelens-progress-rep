@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Upload, History, TrendingUp, Settings, FileText } from "lucide-react";
+import { LayoutDashboard, Upload, History, TrendingUp, Settings, FileText, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -16,6 +17,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const location = useLocation();
+  const { signOut, user } = useAuth();
 
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--gradient-sidebar)" }}>
@@ -45,7 +47,17 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-2">
+        {user && (
+          <p className="text-[10px] text-muted-foreground text-center truncate">{user.email}</p>
+        )}
+        <button
+          onClick={signOut}
+          className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign Out
+        </button>
         <p className="text-[10px] font-light text-muted-foreground text-center tracking-wide">
           RideLens · ESF Designs Vision
         </p>
