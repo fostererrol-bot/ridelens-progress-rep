@@ -62,14 +62,22 @@ export default function ImportScreenshots() {
       updateItem(item.id, { status: "error", error: `Upload failed: ${uploadErr.message}` });
       return;
     }
-    const { data: urlData } = supabase.storage.from("screenshots").getPublicUrl(filePath);
-    updateItem(item.id, { imageUrl: urlData.publicUrl });
+    // Generate a signed URL (private bucket) for AI access
+    const { data: signedUrlData, error: signedUrlErr } = await supabase.storage
+      .from("screenshots")
+      .createSignedUrl(filePath, 3600); // 1 hour
+    if (signedUrlErr || !signedUrlData?.signedUrl) {
+      updateItem(item.id, { status: "error", error: `Signed URL failed: ${signedUrlErr?.message}` });
+      return;
+    }
+    const accessibleUrl = signedUrlData.signedUrl;
+    updateItem(item.id, { imageUrl: accessibleUrl });
 
     // 5. AI extraction
     updateItem(item.id, { status: "extracting" });
     try {
       const { data: extractionData, error: fnErr } = await supabase.functions.invoke("extract-zwift", {
-        body: { imageUrl: urlData.publicUrl },
+        body: { imageUrl: accessibleUrl },
       });
       if (fnErr) throw fnErr;
 
