@@ -1,11 +1,15 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function useSeedData() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (!user) return;
+
     async function seed() {
       const { count } = await supabase
         .from("snapshots")
@@ -16,6 +20,7 @@ export function useSeedData() {
       const { data: snap, error: snapErr } = await supabase
         .from("snapshots")
         .insert({
+          user_id: user!.id,
           source: "seed" as string,
           screen_type: "progress_report",
           overall_confidence: 1.0,
@@ -84,5 +89,5 @@ export function useSeedData() {
       queryClient.invalidateQueries({ queryKey: ["snapshots"] });
     }
     seed();
-  }, [queryClient]);
+  }, [queryClient, user]);
 }

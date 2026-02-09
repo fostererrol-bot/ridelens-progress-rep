@@ -10,8 +10,10 @@ import { BulkImportCard } from "@/components/BulkImportCard";
 import type { BulkImportItem } from "@/types/bulk-import";
 import { defaultMetadata, defaultExtraction, defaultRideMenuExtraction } from "@/types/bulk-import";
 import CryptoJS from "crypto-js";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ImportScreenshots() {
+  const { user } = useAuth();
   const [items, setItems] = useState<BulkImportItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,7 +49,12 @@ export default function ImportScreenshots() {
 
     // 4. Upload to storage
     updateItem(item.id, { status: "uploading" });
-    const filePath = `uploads/${hash}-${item.file.name}`;
+    const userId = user?.id;
+    if (!userId) {
+      updateItem(item.id, { status: "error", error: "Not authenticated" });
+      return;
+    }
+    const filePath = `${userId}/${hash}-${item.file.name}`;
     const { error: uploadErr } = await supabase.storage
       .from("screenshots")
       .upload(filePath, item.file, { upsert: true });
@@ -55,14 +62,19 @@ export default function ImportScreenshots() {
       updateItem(item.id, { status: "error", error: `Upload failed: ${uploadErr.message}` });
       return;
     }
-    const { data: urlData } = supabase.storage.from("screenshots").getPublicUrl(filePath);
-    updateItem(item.id, { imageUrl: urlData.publicUrl });
+    const { data: urlData } = await supabase.storage.from("screenshots").createSignedUrl(filePath, 3600);
+    const signedUrl = urlData?.signedUrl;
+    if (!signedUrl) {
+      updateItem(item.id, { status: "error", error: "Failed to get signed URL" });
+      return;
+    }
+    updateItem(item.id, { imageUrl: signedUrl });
 
     // 5. AI extraction
     updateItem(item.id, { status: "extracting" });
     try {
       const { data: extractionData, error: fnErr } = await supabase.functions.invoke("extract-zwift", {
-        body: { imageUrl: urlData.publicUrl },
+        body: { imageUrl: signedUrl },
       });
       if (fnErr) throw fnErr;
 
@@ -196,6 +208,7 @@ export default function ImportScreenshots() {
         const { data: snap, error: snapErr } = await supabase
           .from("snapshots")
           .insert({
+            user_id: user?.id,
             source: "upload" as string,
             screen_type: isRideMenu ? "ride_menu" : item.extraction.screen_type,
             image_url: item.imageUrl,

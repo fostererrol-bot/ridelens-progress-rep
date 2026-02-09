@@ -270,6 +270,7 @@ export type Database = {
           screen_type: string
           source: string
           timezone_offset_minutes: number | null
+          user_id: string | null
         }
         Insert: {
           captured_at?: string | null
@@ -284,6 +285,7 @@ export type Database = {
           screen_type?: string
           source?: string
           timezone_offset_minutes?: number | null
+          user_id?: string | null
         }
         Update: {
           captured_at?: string | null
@@ -298,6 +300,7 @@ export type Database = {
           screen_type?: string
           source?: string
           timezone_offset_minutes?: number | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -338,7 +341,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      owns_snapshot: { Args: { _snapshot_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
