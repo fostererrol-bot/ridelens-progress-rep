@@ -7,7 +7,7 @@ export default function DisclaimerPage() {
         <section className="rounded-xl border border-border bg-card p-5 space-y-3">
           <h2 className="text-lg font-semibold text-foreground">About</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            This app is part of <span className="font-medium text-foreground">ESF Designs Vision</span>, where engineering meets clarity.
+            <span className="font-medium text-foreground">RideLens</span> is part of <span className="font-medium text-foreground">ESF Designs Vision</span>, where engineering meets clarity.
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
             It started as a simple learning exercise: taking information that lives on a screen and turning it into something structured, understandable, and useful over time. The focus isn't on chasing features, but on building calm, reliable tools that make progress easier to see and reason about.
