@@ -48,7 +48,10 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-2">
+        <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+          Built to explore how Zwift screenshots can be turned into structured insight.
+        </p>
         <p className="text-[10px] text-muted-foreground text-center">Rider Progress Tracker v1.0</p>
       </div>
     </div>
