@@ -10,6 +10,7 @@ import HistoryPage from "@/pages/HistoryPage";
 import TrendsPage from "@/pages/TrendsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import DisclaimerPage from "@/pages/DisclaimerPage";
+import LandingPage from "@/pages/LandingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/landing" element={<LandingPage />} />
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/import" element={<ImportScreenshots />} />
