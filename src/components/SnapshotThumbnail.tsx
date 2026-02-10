@@ -4,14 +4,15 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface SnapshotThumbnailProps {
   imageUrl: string | null;
+  fullWidth?: boolean;
 }
 
-export function SnapshotThumbnail({ imageUrl }: SnapshotThumbnailProps) {
+export function SnapshotThumbnail({ imageUrl, fullWidth }: SnapshotThumbnailProps) {
   const [expanded, setExpanded] = useState(false);
 
   if (!imageUrl) {
     return (
-      <div className="rounded-lg border border-border bg-card/50 flex items-center justify-center h-24 w-36 shrink-0">
+      <div className={`rounded-lg border border-border bg-card/50 flex items-center justify-center ${fullWidth ? "h-32 w-full" : "h-24 w-36 shrink-0"}`}>
         <div className="flex flex-col items-center gap-1 text-muted-foreground">
           <ImageIcon className="w-5 h-5" />
           <span className="text-[10px]">No image</span>
@@ -25,7 +26,7 @@ export function SnapshotThumbnail({ imageUrl }: SnapshotThumbnailProps) {
       <motion.button
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative group rounded-lg border border-border overflow-hidden h-24 w-36 shrink-0 cursor-pointer hover:border-primary/50 transition-colors"
+        className={`relative group rounded-lg border border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-colors ${fullWidth ? "h-40 w-full" : "h-24 w-36 shrink-0"}`}
         onClick={() => setExpanded(true)}
         aria-label="View full screenshot"
       >

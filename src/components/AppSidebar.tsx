@@ -1,11 +1,16 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Upload, History, TrendingUp, Settings, FileText, HelpCircle, Download } from "lucide-react";
+import { LayoutDashboard, Upload, History, TrendingUp, Settings, FileText, HelpCircle, Download, MoreHorizontal, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-const links = [
+const primaryLinks = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/import", label: "Import Screenshots", icon: Upload },
   { to: "/history", label: "History", icon: History },
   { to: "/trends", label: "Trends", icon: TrendingUp },
+];
+
+const secondaryLinks = [
   { to: "/how-to-use", label: "How to Use", icon: HelpCircle },
   { to: "/install", label: "Install App", icon: Download },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -18,6 +23,15 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const location = useLocation();
+  const isSecondaryActive = secondaryLinks.some((l) => l.to === location.pathname);
+  const [moreOpen, setMoreOpen] = useState(isSecondaryActive);
+
+  const linkClass = (active: boolean) =>
+    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+      active
+        ? "bg-sidebar-accent text-primary"
+        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+    }`;
 
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--gradient-sidebar)" }}>
@@ -27,24 +41,28 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
       </div>
 
       <nav className="flex-1 px-3 py-2 space-y-1">
-        {links.map(({ to, label, icon: Icon }) => {
-          const active = location.pathname === to;
-          return (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={onNavigate}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                active
-                  ? "bg-sidebar-accent text-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </NavLink>
-          );
-        })}
+        {primaryLinks.map(({ to, label, icon: Icon }) => (
+          <NavLink key={to} to={to} onClick={onNavigate} className={linkClass(location.pathname === to)}>
+            <Icon className="w-4 h-4" />
+            {label}
+          </NavLink>
+        ))}
+
+        <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>
+          <CollapsibleTrigger className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors w-full">
+            <MoreHorizontal className="w-4 h-4" />
+            <span className="flex-1 text-left">More</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-1 mt-1 ml-2">
+            {secondaryLinks.map(({ to, label, icon: Icon }) => (
+              <NavLink key={to} to={to} onClick={onNavigate} className={linkClass(location.pathname === to)}>
+                <Icon className="w-4 h-4" />
+                {label}
+              </NavLink>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
       </nav>
 
       <div className="p-4 border-t border-sidebar-border">
