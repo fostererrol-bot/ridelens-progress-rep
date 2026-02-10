@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Upload, History, TrendingUp, Settings, FileText, HelpCircle, Download, MoreHorizontal, ChevronDown } from "lucide-react";
+import { LayoutDashboard, Upload, History, TrendingUp, Settings, FileText, HelpCircle, Download, MoreHorizontal, ChevronDown, Store } from "lucide-react";
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ridelensLogo from "@/assets/ridelens-logo.png";
@@ -14,6 +14,7 @@ const primaryLinks = [
 const secondaryLinks = [
   { to: "/how-to-use", label: "How to Use", icon: HelpCircle },
   { to: "/install", label: "Install App", icon: Download },
+  { to: "/app-store-metadata", label: "App Store Metadata", icon: Store },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/disclaimer", label: "Disclaimer", icon: FileText },
 ];
