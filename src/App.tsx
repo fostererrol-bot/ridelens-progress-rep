@@ -12,6 +12,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import DisclaimerPage from "@/pages/DisclaimerPage";
 import HowToUsePage from "@/pages/HowToUsePage";
 import LandingPage from "@/pages/LandingPage";
+import InstallPage from "@/pages/InstallPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/how-to-use" element={<HowToUsePage />} />
             <Route path="/disclaimer" element={<DisclaimerPage />} />
+            <Route path="/install" element={<InstallPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
