@@ -73,6 +73,8 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', system-ui, sans-serif;
@@ -80,6 +82,16 @@
   }
   .font-mono {
     font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Mobile typography refinements */
+  @media (max-width: 767px) {
+    body {
+      @apply leading-relaxed;
+    }
+    .metric-label {
+      @apply opacity-70;
+    }
   }
 }
 

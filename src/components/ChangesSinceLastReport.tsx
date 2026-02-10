@@ -43,7 +43,7 @@ export function ChangesSinceLastReport({ latest, previous }: ChangesSinceLastRep
           Change Since Last Report
         </h3>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
         <DeltaChip
           label="FTP"
           current={latest.performance?.ftp_w}

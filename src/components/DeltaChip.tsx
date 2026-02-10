@@ -43,19 +43,13 @@ export function DeltaChip({
   const bgClass = isUp ? "bg-success/10" : "bg-destructive/10";
 
   return (
-    <div className={`flex items-center gap-1.5 px-3 py-2 rounded-lg ${bgClass} text-xs`}>
+    <div className={`flex items-center gap-1.5 px-3 py-2 rounded-lg ${bgClass} text-xs whitespace-nowrap shrink-0 snap-start`}>
       {isUp ? (
         <ArrowUp className={`w-3 h-3 ${colorClass}`} />
       ) : (
         <ArrowDown className={`w-3 h-3 ${colorClass}`} />
       )}
-      <span className="font-medium text-foreground">{label}:</span>
-      {showFromTo ? (
-        <span className="font-mono text-muted-foreground">
-          {prev.toLocaleString()} → {curr.toLocaleString()}
-          {unit}
-        </span>
-      ) : null}
+      <span className="font-medium text-foreground">{label}</span>
       <span className={`font-mono font-semibold ${colorClass}`}>
         {isUp ? "+" : ""}
         {delta.toLocaleString()}
