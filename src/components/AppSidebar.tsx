@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Upload, History, TrendingUp, Settings, FileText, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Upload, History, TrendingUp, Settings, FileText, HelpCircle, Download } from "lucide-react";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -7,6 +7,7 @@ const links = [
   { to: "/history", label: "History", icon: History },
   { to: "/trends", label: "Trends", icon: TrendingUp },
   { to: "/how-to-use", label: "How to Use", icon: HelpCircle },
+  { to: "/install", label: "Install App", icon: Download },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/disclaimer", label: "Disclaimer", icon: FileText },
 ];
