@@ -278,6 +278,11 @@ export default function ImportScreenshots() {
 
         updateItem(item.id, { status: "saved" });
       } catch (err: any) {
+        const msg = err.message || "";
+        if (msg.includes("duplicate key") || msg.includes("unique constraint")) {
+          updateItem(item.id, { status: "duplicate" });
+          continue;
+        }
         updateItem(item.id, { status: "error", error: `Save failed: ${err.message}` });
       }
     }
