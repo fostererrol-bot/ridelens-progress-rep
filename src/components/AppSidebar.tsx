@@ -2,6 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { LayoutDashboard, Upload, History, TrendingUp, Settings, FileText, HelpCircle, Download, MoreHorizontal, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import ridelensLogo from "@/assets/ridelens-logo.png";
 
 const primaryLinks = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -35,9 +36,12 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
 
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--gradient-sidebar)" }}>
-      <div className="p-5">
-        <h1 className="text-base font-semibold tracking-tight text-foreground leading-none">RideLens</h1>
-        <p className="mt-1.5 text-[10px] font-light tracking-wide text-muted-foreground">by ESF Designs Vision</p>
+      <div className="p-4 flex items-center gap-3">
+        <img src={ridelensLogo} alt="RideLens logo" className="w-10 h-10 object-contain" />
+        <div>
+          <h1 className="text-base font-semibold tracking-tight text-foreground leading-none">RideLens</h1>
+          <p className="mt-1 text-[10px] font-light tracking-wide text-muted-foreground">by ESF Designs Vision</p>
+        </div>
       </div>
 
       <nav className="flex-1 px-3 py-2 space-y-1">
