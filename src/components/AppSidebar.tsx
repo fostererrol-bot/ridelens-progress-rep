@@ -37,7 +37,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--gradient-sidebar)" }}>
       <div className="p-4 flex items-center gap-3">
-        <img src={ridelensLogo} alt="RideLens logo" className="w-10 h-10 object-contain" />
+        <img src={ridelensLogo} alt="RideLens logo" className="w-[60px] h-[60px] object-contain" />
         <div>
           <h1 className="text-base font-semibold tracking-tight text-foreground leading-none">RideLens</h1>
           <p className="mt-1 text-[10px] font-light tracking-wide text-muted-foreground">by ESF Designs Vision</p>
