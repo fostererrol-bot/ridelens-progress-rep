@@ -48,7 +48,11 @@ export default function Dashboard() {
   // Clamp index in case data changed
   const idx = Math.min(selectedIndex, snapshots.length - 1);
   const current = snapshots[idx];
-  const prev = idx < snapshots.length - 1 ? snapshots[idx + 1] : null;
+
+  // Find previous snapshot of the same screen type for meaningful comparison
+  const prev = snapshots.slice(idx + 1).find(
+    (s) => s.snapshot.screen_type === current.snapshot.screen_type
+  ) || null;
 
   const isRideMenu = current.snapshot.screen_type === "ride_menu";
 
