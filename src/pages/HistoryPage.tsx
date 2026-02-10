@@ -118,14 +118,23 @@ export default function HistoryPage() {
     setSearchFile("");
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this snapshot?")) return;
+  const handleDelete = async (id: string, imageUrl?: string | null) => {
+    if (!confirm("Delete this snapshot and its image? This cannot be undone.")) return;
+
+    // Delete storage file if exists
+    if (imageUrl) {
+      const path = imageUrl.split("/storage/v1/object/public/screenshots/").pop();
+      if (path) {
+        await supabase.storage.from("screenshots").remove([decodeURIComponent(path)]);
+      }
+    }
+
     const { error } = await supabase.from("snapshots").delete().eq("id", id);
     if (error) {
       toast.error("Delete failed");
       return;
     }
-    toast.success("Deleted");
+    toast.success("Snapshot deleted");
     queryClient.invalidateQueries({ queryKey: ["snapshots"] });
   };
 
@@ -259,7 +268,7 @@ export default function HistoryPage() {
                         <Button variant="ghost" size="icon" onClick={() => setDetailSnap(item)}>
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.snapshot.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.snapshot.id, item.snapshot.image_url)}>
                           <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
                       </div>
