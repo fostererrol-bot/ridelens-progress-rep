@@ -23,13 +23,6 @@ export default function ImportScreenshots() {
   }, []);
 
   const processFile = useCallback(async (item: BulkImportItem) => {
-    // 0. Get authenticated user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      updateItem(item.id, { status: "error", error: "Not authenticated" });
-      return;
-    }
-
     // 1. Extract metadata
     const meta = await extractImageMetadata(item.file);
     updateItem(item.id, { metadata: meta, status: "hashing" });
@@ -54,7 +47,7 @@ export default function ImportScreenshots() {
 
     // 4. Upload to storage
     updateItem(item.id, { status: "uploading" });
-    const filePath = `${user.id}/${hash}-${item.file.name}`;
+    const filePath = `public/${hash}-${item.file.name}`;
     const { error: uploadErr } = await supabase.storage
       .from("screenshots")
       .upload(filePath, item.file, { upsert: true });
@@ -200,13 +193,9 @@ export default function ImportScreenshots() {
           ? item.rideMenuExtraction?.confidence?.overall || 0
           : item.extraction.confidence.overall;
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Not authenticated");
-
         const { data: snap, error: snapErr } = await supabase
           .from("snapshots")
           .insert({
-            user_id: user.id,
             source: "upload" as string,
             screen_type: isRideMenu ? "ride_menu" : item.extraction.screen_type,
             image_url: item.imageUrl,
