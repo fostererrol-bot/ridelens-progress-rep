@@ -45,9 +45,11 @@ export default function ImportScreenshots() {
       return;
     }
 
-    // 4. Upload to storage
+    // 4. Upload to storage (user-scoped folder)
     updateItem(item.id, { status: "uploading" });
-    const filePath = `public/${hash}-${item.file.name}`;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+    const filePath = `${user.id}/${hash}-${item.file.name}`;
     const { error: uploadErr } = await supabase.storage
       .from("screenshots")
       .upload(filePath, item.file, { upsert: true });
@@ -55,14 +57,20 @@ export default function ImportScreenshots() {
       updateItem(item.id, { status: "error", error: `Upload failed: ${uploadErr.message}` });
       return;
     }
-    const { data: urlData } = supabase.storage.from("screenshots").getPublicUrl(filePath);
-    updateItem(item.id, { imageUrl: urlData.publicUrl });
+    const { data: urlData, error: urlError } = await supabase.storage
+      .from("screenshots")
+      .createSignedUrl(filePath, 3600);
+    if (urlError || !urlData) {
+      updateItem(item.id, { status: "error", error: "Failed to get image URL" });
+      return;
+    }
+    updateItem(item.id, { imageUrl: urlData.signedUrl });
 
     // 5. AI extraction
     updateItem(item.id, { status: "extracting" });
     try {
       const { data: extractionData, error: fnErr } = await supabase.functions.invoke("extract-zwift", {
-        body: { imageUrl: urlData.publicUrl },
+        body: { imageUrl: urlData.signedUrl },
       });
       if (fnErr) throw fnErr;
 

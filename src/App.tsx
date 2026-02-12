@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "@/pages/Dashboard";
 import ImportScreenshots from "@/pages/ImportScreenshots";
 import HistoryPage from "@/pages/HistoryPage";
@@ -12,6 +13,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import DisclaimerPage from "@/pages/DisclaimerPage";
 import HowToUsePage from "@/pages/HowToUsePage";
 import LandingPage from "@/pages/LandingPage";
+import LoginPage from "@/pages/LoginPage";
 import AppStoreMetadataPage from "@/pages/AppStoreMetadataPage";
 import InstallPage from "@/pages/InstallPage";
 import NotFound from "./pages/NotFound";
@@ -26,7 +28,14 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/landing" element={<LandingPage />} />
-          <Route element={<AppLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/" element={<Dashboard />} />
             <Route path="/import" element={<ImportScreenshots />} />
             <Route path="/history" element={<HistoryPage />} />

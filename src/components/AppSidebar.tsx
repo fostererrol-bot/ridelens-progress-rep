@@ -1,7 +1,8 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Upload, History, TrendingUp, Settings, FileText, HelpCircle, Download, MoreHorizontal, ChevronDown, Store } from "lucide-react";
+import { LayoutDashboard, Upload, History, TrendingUp, Settings, FileText, HelpCircle, Download, MoreHorizontal, ChevronDown, Store, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useAuth } from "@/hooks/useAuth";
 import ridelensLogo from "@/assets/ridelens-logo.png";
 
 const primaryLinks = [
@@ -25,6 +26,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const isSecondaryActive = secondaryLinks.some((l) => l.to === location.pathname);
   const [moreOpen, setMoreOpen] = useState(isSecondaryActive);
 
@@ -72,7 +74,19 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         </Collapsible>
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-3">
+        {user && (
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground truncate max-w-[140px]">{user.email}</p>
+            <button
+              onClick={signOut}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
         <p className="text-[10px] font-light text-muted-foreground text-center tracking-wide">
           RideLens · ESF Designs Vision
         </p>
