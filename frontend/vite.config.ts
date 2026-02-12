@@ -7,11 +7,16 @@ import { VitePWA } from "vite-plugin-pwa";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
-    port: 8080,
+    host: "0.0.0.0",
+    port: 3000,
     hmr: {
       overlay: false,
     },
+    allowedHosts: [
+      "loveable-publish.preview.emergentagent.com",
+      ".emergentagent.com",
+      "localhost",
+    ],
   },
   plugins: [
     react(),
