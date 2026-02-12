@@ -1,0 +1,15 @@
+{
+  "name": "ridelens",
+  "displayName": "RideLens",
+  "expo": {
+    "name": "RideLens",
+    "slug": "ridelens",
+    "version": "1.0.0",
+    "platforms": ["web"],
+    "web": {
+      "bundler": "vite",
+      "output": "single",
+      "favicon": "./public/favicon.ico"
+    }
+  }
+}
