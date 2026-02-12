@@ -9,6 +9,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MetadataSourceBadge } from "@/components/MetadataSourceBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -21,6 +25,7 @@ export default function HistoryPage() {
   const { data, isLoading } = useAllSnapshots();
   const queryClient = useQueryClient();
   const [detailSnap, setDetailSnap] = useState<FullSnapshot | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; imageUrl?: string | null } | null>(null);
   const [sortField, setSortField] = useState<SortField>("uploaded");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filterSource, setFilterSource] = useState<string>("all");
@@ -118,8 +123,10 @@ export default function HistoryPage() {
     setSearchFile("");
   };
 
-  const handleDelete = async (id: string, imageUrl?: string | null) => {
-    if (!confirm("Delete this snapshot and its image? This cannot be undone.")) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { id, imageUrl } = deleteTarget;
+    setDeleteTarget(null);
 
     // Delete storage file if exists
     if (imageUrl) {
@@ -270,7 +277,7 @@ export default function HistoryPage() {
                         <Button variant="ghost" size="icon" onClick={() => setDetailSnap(item)}>
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.snapshot.id, item.snapshot.image_url)}>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ id: item.snapshot.id, imageUrl: item.snapshot.image_url })}>
                           <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
                       </div>
@@ -335,6 +342,23 @@ export default function HistoryPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete snapshot?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the snapshot and its stored image. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
