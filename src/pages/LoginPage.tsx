@@ -1,9 +1,14 @@
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { LogIn } from "lucide-react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 import logo from "@/assets/ridelens-logo.png";
 
 export default function LoginPage() {
+  const { session, loading } = useAuth();
+
   const handleGoogleSignIn = async () => {
     const { error } = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
@@ -12,6 +17,18 @@ export default function LoginPage() {
       console.error("Sign-in error:", error);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (session) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
