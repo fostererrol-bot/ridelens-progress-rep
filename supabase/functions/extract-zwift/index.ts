@@ -199,8 +199,18 @@ serve(async (req) => {
 
   try {
     const { imageUrl } = await req.json();
-    if (!imageUrl) {
+    if (!imageUrl || typeof imageUrl !== 'string') {
       return new Response(JSON.stringify({ error: "imageUrl is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate URL is from our Supabase storage only (prevent SSRF and credit abuse)
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const expectedPrefix = `${SUPABASE_URL}/storage/v1/object/`;
+    if (!imageUrl.startsWith(expectedPrefix)) {
+      return new Response(JSON.stringify({ error: "Invalid image URL - must be from storage bucket" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
