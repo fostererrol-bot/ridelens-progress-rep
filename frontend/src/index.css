@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    --background: 220 20% 8%;
+    --foreground: 210 20% 92%;
+
+    --card: 220 18% 12%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 220 18% 14%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 24 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 210 20% 85%;
+
+    --muted: 220 15% 16%;
+    --muted-foreground: 215 15% 55%;
+
+    --accent: 24 90% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 24 100% 50%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 20% 6%;
+    --sidebar-foreground: 210 15% 75%;
+    --sidebar-primary: 24 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 14%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 220 15% 15%;
+    --sidebar-ring: 24 100% 50%;
+
+    /* Custom tokens */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --zwift-orange: 24 100% 50%;
+    --zwift-orange-glow: 24 100% 50% / 0.15;
+    --zwift-dark: 220 20% 6%;
+    
+    --gradient-orange: linear-gradient(135deg, hsl(24 100% 50%), hsl(32 100% 55%));
+    --gradient-card: linear-gradient(180deg, hsl(220 18% 14%), hsl(220 18% 10%));
+    --gradient-sidebar: linear-gradient(180deg, hsl(220 20% 6%), hsl(220 25% 4%));
+    
+    --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
+    --shadow-glow: 0 0 20px hsl(24 100% 50% / 0.15);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', system-ui, sans-serif;
+    @apply font-bold tracking-tight;
+  }
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Mobile typography refinements */
+  @media (max-width: 767px) {
+    body {
+      @apply leading-relaxed;
+    }
+    .metric-label {
+      @apply opacity-70;
+    }
+  }
+}
+
+@layer components {
+  .metric-value {
+    font-family: 'JetBrains Mono', monospace;
+    @apply text-2xl font-bold tracking-tight;
+  }
+  .metric-label {
+    @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
+  }
+  .card-glow {
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.3s ease;
+  }
+  .card-glow:hover {
+    box-shadow: var(--shadow-card), var(--shadow-glow);
+  }
+  .progress-bar-fill {
+    background: var(--gradient-orange);
+    @apply rounded-full transition-all duration-500 ease-out;
+  }
+  .delta-up {
+    @apply text-success;
+    color: hsl(var(--success));
+  }
+  .delta-down {
+    @apply text-destructive;
+  }
+  .badge-fresh {
+    background: hsl(var(--success) / 0.15);
+    color: hsl(var(--success));
+    @apply px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider;
+  }
+  .badge-tired {
+    background: hsl(var(--warning) / 0.15);
+    color: hsl(var(--warning));
+    @apply px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider;
+  }
+  .badge-stale {
+    background: hsl(var(--destructive) / 0.15);
+    color: hsl(var(--destructive));
+    @apply px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider;
+  }
+}
