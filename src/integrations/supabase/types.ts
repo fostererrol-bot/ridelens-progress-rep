@@ -270,7 +270,7 @@ export type Database = {
           screen_type: string
           source: string
           timezone_offset_minutes: number | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           captured_at?: string | null
@@ -285,7 +285,7 @@ export type Database = {
           screen_type?: string
           source?: string
           timezone_offset_minutes?: number | null
-          user_id?: string | null
+          user_id?: string
         }
         Update: {
           captured_at?: string | null
@@ -300,7 +300,7 @@ export type Database = {
           screen_type?: string
           source?: string
           timezone_offset_minutes?: number | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
