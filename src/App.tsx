@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// v1.1
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
