@@ -123,7 +123,9 @@ export default function HistoryPage() {
 
     // Delete storage file if exists
     if (imageUrl) {
-      const path = imageUrl.split("/storage/v1/object/public/screenshots/").pop();
+      // Handle both signed URLs (/sign/screenshots/) and public URLs (/public/screenshots/)
+      const match = imageUrl.match(/\/storage\/v1\/object\/(?:sign|public)\/screenshots\/([^?]+)/);
+      const path = match?.[1];
       if (path) {
         await supabase.storage.from("screenshots").remove([decodeURIComponent(path)]);
       }
