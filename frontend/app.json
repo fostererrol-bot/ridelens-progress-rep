@@ -10,20 +10,12 @@
       "favicon": "./public/favicon.ico"
     },
     "updates": {
-<<<<<<< HEAD
-      "enabled": true,
-      "checkAutomatically": "ON_LOAD"
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-=======
       "enabled": false
     },
     "extra": {
       "eas": {
         "projectId": "ridelens"
       }
->>>>>>> 6cf9442 (Fix: Configure EAS for web-only builds - disable expo-updates and set web build command)
     }
   }
 }

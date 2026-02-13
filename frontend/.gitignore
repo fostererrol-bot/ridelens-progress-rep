@@ -25,7 +25,3 @@ package-lock.json
 *.njsproj
 *.sln
 *.sw?
-
-
-# Bun lock file - force yarn usage
-bun.lockb
