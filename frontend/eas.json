@@ -5,22 +5,14 @@
   },
   "build": {
     "development": {
-      "extends": "production",
-      "distribution": "internal",
-      "channel": "development"
+      "developmentClient": true,
+      "distribution": "internal"
     },
     "preview": {
-      "extends": "production",
-      "distribution": "internal",
-      "channel": "preview"
+      "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "distribution": "store",
-      "channel": "production",
-      "web": {
-        "buildCommand": "yarn build"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {

@@ -10,12 +10,11 @@
       "favicon": "./public/favicon.ico"
     },
     "updates": {
-      "enabled": false
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD"
     },
-    "extra": {
-      "eas": {
-        "projectId": "ridelens"
-      }
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
