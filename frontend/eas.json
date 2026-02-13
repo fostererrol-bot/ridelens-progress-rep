@@ -5,6 +5,16 @@
   },
   "build": {
     "development": {
+<<<<<<< HEAD
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true
+=======
       "extends": "production",
       "distribution": "internal",
       "channel": "development"
@@ -21,6 +31,7 @@
       "web": {
         "buildCommand": "yarn build"
       }
+>>>>>>> 6cf9442 (Fix: Configure EAS for web-only builds - disable expo-updates and set web build command)
     }
   },
   "submit": {
