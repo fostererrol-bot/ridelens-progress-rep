@@ -1,6 +1,4 @@
 {
-  "name": "ridelens",
-  "displayName": "RideLens",
   "expo": {
     "name": "RideLens",
     "slug": "ridelens",
@@ -10,6 +8,13 @@
       "bundler": "vite",
       "output": "single",
       "favicon": "./public/favicon.ico"
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
