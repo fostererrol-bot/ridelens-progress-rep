@@ -10,28 +10,32 @@ RideLens transforms ride screenshots into structured data with features includin
 - Dashboards
 
 ## Tech Stack
-- **Frontend:** React + Vite + TypeScript
+- **Frontend:** React + Vite + TypeScript + Expo (for PWA/web)
 - **Backend:** Supabase (external)
-- **Deployment:** EAS (Expo Application Services)
-- **Package Manager:** Yarn
+- **Deployment:** Emergent (Kubernetes) with EAS update step
+- **Package Manager:** Yarn (enforced)
 
 ## What's Been Implemented
 
 ### Session - Feb 2025
 | Date | Task | Status |
 |------|------|--------|
+| Feb 13 | Pre-installed `expo-updates@~29.0.16` to prevent EAS auto-install (commit `7baf120`) | ✅ Done |
+| Feb 13 | Created `.npmrc` with `package-manager=yarn` to force yarn | ✅ Done |
 | Feb 13 | Pushed `yarn.lock` to force yarn in EAS builds (commit `b76ae8b`) | ✅ Done |
 | Earlier | Added `packageManager: "yarn@1.22.22"` to package.json | ✅ Done |
-| Earlier | Pre-installed `expo-updates` in dependencies | ✅ Done |
 | Earlier | Deleted `bun.lockb` and added to `.gitignore` | ✅ Done |
 
 ## Current Issues
 
 ### P0 - Deployment (IN PROGRESS - Awaiting User Verification)
-- **Issue:** `spawn bun ENOENT` error during EAS build
-- **Root Cause:** Missing `yarn.lock` file caused EAS to default to `bun`
-- **Fix Applied:** Pushed `yarn.lock` to repository
-- **Status:** Awaiting user to trigger new deployment
+- **Issue:** `spawn bun ENOENT` error during EAS update step when installing expo-updates
+- **Root Cause:** Expo CLI defaulted to `bun` when auto-installing expo-updates
+- **Fix Applied:** 
+  1. Pre-installed expo-updates in dependencies
+  2. Added .npmrc to force yarn
+  3. Updated yarn.lock
+- **Status:** Awaiting user to trigger new deployment with commit `7baf120`
 
 ### P1 - Preview URL (NOT STARTED)
 - **Issue:** `ERR_NGROK_3200` error on preview URL
@@ -41,7 +45,7 @@ RideLens transforms ride screenshots into structured data with features includin
 ## Prioritized Backlog
 
 ### P0 (Critical)
-- [ ] Verify deployment succeeds with new `yarn.lock`
+- [ ] Verify deployment succeeds with new fixes (commit `7baf120`)
 
 ### P1 (High)
 - [ ] Fix preview URL if still needed after successful deployment
@@ -55,9 +59,20 @@ RideLens transforms ride screenshots into structured data with features includin
 ## Repository
 - GitHub: `https://github.com/fostererrol-bot/ridelens-progress-rep`
 - Branch: `main`
-- Latest Commit: `b76ae8b` (Add yarn.lock)
+- Latest Commit: `7baf120` (Fix: Pre-install expo-updates and add .npmrc)
+
+## Files Modified for Deployment Fix
+- `package.json` - Added expo-updates dependency
+- `.npmrc` - Created with `package-manager=yarn`
+- `yarn.lock` - Updated with new dependency
+- `.gitignore` - Contains `bun.lockb`
 
 ## 3rd Party Integrations
 - **Supabase:** Backend and authentication
 - **GitHub:** Source control for deployments
-- **EAS:** Build and deployment pipeline
+- **EAS:** Build and deployment pipeline (Expo Application Services)
+
+## Critical Notes for Future Sessions
+- This is a **Vite web app with Expo** for PWA capabilities, NOT a native mobile app
+- Always ensure `yarn.lock` is present and `package-lock.json`/`bun.lockb` are removed
+- The user has repeatedly provided old logs - always verify log timestamps match recent commits
