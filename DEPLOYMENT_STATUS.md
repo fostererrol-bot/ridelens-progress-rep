@@ -43,9 +43,9 @@ mongodb     RUNNING   pid 251, uptime 0:56:36
 
 ### Frontend (.env) ✅
 ```
-EXPO_TUNNEL_SUBDOMAIN=ridelens-yarn-build
-EXPO_PACKAGER_HOSTNAME=https://ridelens-yarn-build.preview.emergentagent.com
-EXPO_PUBLIC_BACKEND_URL=https://ridelens-yarn-build.preview.emergentagent.com
+EXPO_TUNNEL_SUBDOMAIN=ridelens-staging-1
+EXPO_PACKAGER_HOSTNAME=https://ridelens-staging-1.preview.emergentagent.com
+EXPO_PUBLIC_BACKEND_URL=https://ridelens-staging-1.preview.emergentagent.com
 EXPO_USE_FAST_RESOLVER="1"
 METRO_CACHE_ROOT=/app/frontend/.metro-cache
 EXPO_PACKAGER_PROXY_URL=https://loveable-publish.ngrok.io
@@ -65,7 +65,7 @@ CORS_ORIGINS="*"
 ### Current Workspace (/app/)
 - **Type:** Expo Mobile App + FastAPI Backend
 - **Status:** ✅ Ready for Native Emergent Deployment
-- **Access URL:** https://ridelens-yarn-build.preview.emergentagent.com
+- **Access URL:** https://ridelens-staging-1.preview.emergentagent.com
 - **Database:** MongoDB (managed)
 
 ### RideLens App (/app/ridelens-progress-rep/)
