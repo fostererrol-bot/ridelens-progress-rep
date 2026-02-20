@@ -142,7 +142,7 @@ export default function TrendsPage() {
                   strokeWidth={2}
                   dot={{ fill: cfg.color, r: 4 }}
                   activeDot={{ r: 6 }}
-                  connectNulls={false}
+                  connectNulls={true}
                 />
               </LineChart>
             </ResponsiveContainer>
