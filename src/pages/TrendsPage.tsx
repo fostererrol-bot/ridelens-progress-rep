@@ -61,31 +61,28 @@ export default function TrendsPage() {
 
   const cfg = metricConfig[metric];
 
-  // Time series data — only include snapshots that have a value for this metric
-  const timeSeriesData = sorted
-    .map((item) => {
-      const val = getMetricValue(item, metric);
-      if (val === null) return null;
-      const dateStr = item.snapshot.captured_at || item.snapshot.created_at;
-      return { date: format(new Date(dateStr), "MMM d"), value: val };
-    })
-    .filter((d): d is { date: string; value: number } => d !== null);
+  // Time series — all rides on x-axis; value is null where metric isn't available (renders as a gap)
+  const timeSeriesData = sorted.map((item) => {
+    const dateStr = item.snapshot.captured_at || item.snapshot.created_at;
+    return { date: format(new Date(dateStr), "MMM d"), value: getMetricValue(item, metric) };
+  });
 
-  // Between reports data — only include pairs where both snapshots have a value
-  const betweenReportsData = sorted.slice(1).reduce<{ label: string; delta: number; isNull: boolean }[]>((acc, item, idx) => {
+  // Between reports — all consecutive pairs where at least one side has a value; skip if both null
+  const betweenReportsData = sorted.slice(1).reduce<{ label: string; delta: number }[]>((acc, item, idx) => {
     const prev = sorted[idx];
     const currVal = getMetricValue(item, metric);
     const prevVal = getMetricValue(prev, metric);
     if (currVal === null || prevVal === null) return acc;
-    const delta = currVal - prevVal;
     const currDate = format(new Date(item.snapshot.captured_at || item.snapshot.created_at), "MMM d");
     const prevDate = format(new Date(prev.snapshot.captured_at || prev.snapshot.created_at), "MMM d");
-    acc.push({ label: `${prevDate} → ${currDate}`, delta, isNull: false });
+    acc.push({ label: `${prevDate} → ${currDate}`, delta: currVal - prevVal });
     return acc;
   }, []);
 
-  const activeData = viewMode === "time_series" ? timeSeriesData : betweenReportsData;
-  const hasEnoughData = activeData.length >= 2;
+  const hasEnoughData =
+    viewMode === "time_series"
+      ? timeSeriesData.filter((d) => d.value !== null).length >= 2
+      : betweenReportsData.length >= 1;
 
   return (
     <div>
@@ -145,6 +142,7 @@ export default function TrendsPage() {
                   strokeWidth={2}
                   dot={{ fill: cfg.color, r: 4 }}
                   activeDot={{ r: 6 }}
+                  connectNulls={false}
                 />
               </LineChart>
             </ResponsiveContainer>
