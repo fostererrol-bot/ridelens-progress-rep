@@ -9,6 +9,7 @@ export interface BulkImportItem {
   status: BulkItemStatus;
   error?: string;
   imageUrl?: string;
+  imageStoragePath?: string;
   imageHash?: string;
   metadata: ImageMetadata;
   extraction: ExtractionResult;

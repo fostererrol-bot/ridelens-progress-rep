@@ -57,6 +57,8 @@ export default function ImportScreenshots() {
       updateItem(item.id, { status: "error", error: `Upload failed: ${uploadErr.message}` });
       return;
     }
+    // Store the storage path (not a signed URL) so it never expires
+    // We'll generate a fresh signed URL for display purposes only
     const { data: urlData, error: urlError } = await supabase.storage
       .from("screenshots")
       .createSignedUrl(filePath, 3600);
@@ -64,7 +66,9 @@ export default function ImportScreenshots() {
       updateItem(item.id, { status: "error", error: "Failed to get image URL" });
       return;
     }
-    updateItem(item.id, { imageUrl: urlData.signedUrl });
+    // imageUrl holds the signed URL for use during this session (AI extraction + preview)
+    // But we save filePath to the DB so it never expires
+    updateItem(item.id, { imageUrl: urlData.signedUrl, imageStoragePath: filePath });
 
     // 5. AI extraction
     updateItem(item.id, { status: "extracting" });
@@ -206,7 +210,8 @@ export default function ImportScreenshots() {
           .insert({
             source: "upload" as string,
             screen_type: isRideMenu ? "ride_menu" : item.extraction.screen_type,
-            image_url: item.imageUrl,
+            // Store the storage path (not an expiring signed URL) so images never break
+            image_url: item.imageStoragePath ? `storage:screenshots/${item.imageStoragePath}` : item.imageUrl,
             image_hash: item.imageHash,
             raw_extraction_json: item.rawJson as any,
             parsed_data_json: (isRideMenu ? item.rideMenuExtraction : item.extraction) as any,
