@@ -61,32 +61,31 @@ export default function TrendsPage() {
 
   const cfg = metricConfig[metric];
 
-  // Time series data
-  const timeSeriesData = sorted.map((item) => {
-    const dateStr = item.snapshot.captured_at || item.snapshot.created_at;
-    return {
-      date: format(new Date(dateStr), "MMM d"),
-      value: getMetricValue(item, metric) ?? 0,
-    };
-  });
+  // Time series data — only include snapshots that have a value for this metric
+  const timeSeriesData = sorted
+    .map((item) => {
+      const val = getMetricValue(item, metric);
+      if (val === null) return null;
+      const dateStr = item.snapshot.captured_at || item.snapshot.created_at;
+      return { date: format(new Date(dateStr), "MMM d"), value: val };
+    })
+    .filter((d): d is { date: string; value: number } => d !== null);
 
-  // Between reports data (deltas)
-  const betweenReportsData = sorted.slice(1).map((item, idx) => {
+  // Between reports data — only include pairs where both snapshots have a value
+  const betweenReportsData = sorted.slice(1).reduce<{ label: string; delta: number; isNull: boolean }[]>((acc, item, idx) => {
     const prev = sorted[idx];
     const currVal = getMetricValue(item, metric);
     const prevVal = getMetricValue(prev, metric);
-    const delta = currVal != null && prevVal != null ? currVal - prevVal : null;
+    if (currVal === null || prevVal === null) return acc;
+    const delta = currVal - prevVal;
     const currDate = format(new Date(item.snapshot.captured_at || item.snapshot.created_at), "MMM d");
     const prevDate = format(new Date(prev.snapshot.captured_at || prev.snapshot.created_at), "MMM d");
-    return {
-      label: `${prevDate} → ${currDate}`,
-      delta: delta ?? 0,
-      isNull: delta === null,
-    };
-  });
+    acc.push({ label: `${prevDate} → ${currDate}`, delta, isNull: false });
+    return acc;
+  }, []);
 
-  const minDataPoints = viewMode === "time_series" ? 2 : 2;
-  const hasEnoughData = sorted.length >= minDataPoints;
+  const activeData = viewMode === "time_series" ? timeSeriesData : betweenReportsData;
+  const hasEnoughData = activeData.length >= 2;
 
   return (
     <div>
@@ -113,8 +112,8 @@ export default function TrendsPage() {
       </div>
 
       {!hasEnoughData ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <p>Import at least 2 snapshots to see trends.</p>
+      <div className="text-center py-20 text-muted-foreground">
+          <p>Not enough data for <strong>{cfg.label}</strong> — try a different metric or import more snapshots that include this value.</p>
         </div>
       ) : (
         <div className="rounded-xl border border-border bg-card p-6 card-glow">
