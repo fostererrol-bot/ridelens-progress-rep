@@ -4,6 +4,7 @@ import { SnapshotHeader } from "@/components/dashboard/SnapshotHeader";
 import { ProgressReportCards } from "@/components/dashboard/ProgressReportCards";
 import { RideMenuDashboard } from "@/components/RideMenuDashboard";
 import { ChangesSinceLastReport } from "@/components/ChangesSinceLastReport";
+import { VoiceReviewPlayer } from "@/components/VoiceReviewPlayer";
 import { useAllSnapshots } from "@/hooks/useSnapshots";
 import { motion } from "framer-motion";
 
@@ -64,11 +65,19 @@ export default function Dashboard() {
       </motion.div>
 
       {isRideMenu && current.rideMenu ? (
-        <RideMenuDashboard data={current.rideMenu} />
+        <>
+          <RideMenuDashboard data={current.rideMenu} />
+          <div className="mt-4">
+            <VoiceReviewPlayer currentSnap={current} previousSnap={prev} />
+          </div>
+        </>
       ) : (
         <>
           <ProgressReportCards current={current} />
           <ChangesSinceLastReport latest={current} previous={prev} />
+          <div className="mt-4">
+            <VoiceReviewPlayer currentSnap={current} previousSnap={prev} />
+          </div>
         </>
       )}
     </div>
