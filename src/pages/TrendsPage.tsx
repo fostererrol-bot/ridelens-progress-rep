@@ -1,12 +1,13 @@
 import { useAllSnapshots } from "@/hooks/useSnapshots";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Cell,
+  Tooltip, ResponsiveContainer, ReferenceLine, Cell, Legend,
 } from "recharts";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 type Metric = "ftp" | "training_score" | "total_distance" | "elevation" | "power_5s" | "power_1m" | "power_5m" | "power_20m" | "racing_score" | "energy" | "avg_power" | "avg_hr" | "rider_score" | "ride_distance";
 
@@ -28,6 +29,21 @@ const metricConfig: Record<Metric, { label: string; unit: string; color: string 
 };
 
 type ViewMode = "time_series" | "between_reports";
+
+/** Linear regression over indexed (x=index, y=value) pairs. Returns slope & intercept. */
+function linearRegression(points: { x: number; y: number }[]): { slope: number; intercept: number } | null {
+  const n = points.length;
+  if (n < 2) return null;
+  const sumX = points.reduce((s, p) => s + p.x, 0);
+  const sumY = points.reduce((s, p) => s + p.y, 0);
+  const sumXY = points.reduce((s, p) => s + p.x * p.y, 0);
+  const sumX2 = points.reduce((s, p) => s + p.x * p.x, 0);
+  const denom = n * sumX2 - sumX * sumX;
+  if (denom === 0) return null;
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  return { slope, intercept };
+}
 
 export default function TrendsPage() {
   const { data, isLoading } = useAllSnapshots();
@@ -61,13 +77,32 @@ export default function TrendsPage() {
 
   const cfg = metricConfig[metric];
 
-  // Time series — all rides on x-axis; value is null where metric isn't available (renders as a gap)
-  const timeSeriesData = sorted.map((item) => {
+  // Time series — all rides on x-axis; value is null where metric isn't available
+  const timeSeriesData = sorted.map((item, i) => {
     const dateStr = item.snapshot.captured_at || item.snapshot.created_at;
-    return { date: format(new Date(dateStr), "MMM d"), value: getMetricValue(item, metric) };
+    return { date: format(new Date(dateStr), "MMM d"), value: getMetricValue(item, metric), _idx: i };
   });
 
-  // Between reports — all consecutive pairs where at least one side has a value; skip if both null
+  // Compute linear regression from non-null points
+  const validPoints = timeSeriesData
+    .map((d, i) => (d.value !== null ? { x: i, y: d.value as number } : null))
+    .filter((p): p is { x: number; y: number } => p !== null);
+
+  const regression = linearRegression(validPoints);
+
+  // Merge trend value into each data point
+  const chartData = timeSeriesData.map((d, i) => ({
+    ...d,
+    trend: regression ? parseFloat((regression.slope * i + regression.intercept).toFixed(2)) : null,
+  }));
+
+  // Trend direction badge
+  const trendSlope = regression?.slope ?? 0;
+  const TrendIcon = trendSlope > 0.01 ? TrendingUp : trendSlope < -0.01 ? TrendingDown : Minus;
+  const trendColor = trendSlope > 0.01 ? "text-green-500" : trendSlope < -0.01 ? "text-red-500" : "text-muted-foreground";
+  const trendLabel = trendSlope > 0.01 ? "Improving" : trendSlope < -0.01 ? "Declining" : "Stable";
+
+  // Between reports — all consecutive pairs where both have a value
   const betweenReportsData = sorted.slice(1).reduce<{ label: string; delta: number }[]>((acc, item, idx) => {
     const prev = sorted[idx];
     const currVal = getMetricValue(item, metric);
@@ -81,7 +116,7 @@ export default function TrendsPage() {
 
   const hasEnoughData =
     viewMode === "time_series"
-      ? timeSeriesData.filter((d) => d.value !== null).length >= 2
+      ? validPoints.length >= 2
       : betweenReportsData.length >= 1;
 
   return (
@@ -109,20 +144,31 @@ export default function TrendsPage() {
       </div>
 
       {!hasEnoughData ? (
-      <div className="text-center py-20 text-muted-foreground">
+        <div className="text-center py-20 text-muted-foreground">
           <p>Not enough data for <strong>{cfg.label}</strong> — try a different metric or import more snapshots that include this value.</p>
         </div>
       ) : (
         <div className="rounded-xl border border-border bg-card p-6 card-glow">
-          <h3 className="text-sm font-medium text-muted-foreground mb-4">
-            {viewMode === "time_series"
-              ? `${cfg.label} ${cfg.unit && `(${cfg.unit})`}`
-              : `${cfg.label} Delta ${cfg.unit && `(${cfg.unit})`}`}
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              {viewMode === "time_series"
+                ? `${cfg.label}${cfg.unit ? ` (${cfg.unit})` : ""}`
+                : `${cfg.label} Delta${cfg.unit ? ` (${cfg.unit})` : ""}`}
+            </h3>
+            {viewMode === "time_series" && regression && (
+              <div className={`flex items-center gap-1.5 text-xs font-medium ${trendColor}`}>
+                <TrendIcon className="w-4 h-4" />
+                <span>{trendLabel}</span>
+                <span className="text-muted-foreground font-normal">
+                  ({trendSlope >= 0 ? "+" : ""}{trendSlope.toFixed(2)} {cfg.unit}/ride)
+                </span>
+              </div>
+            )}
+          </div>
 
           {viewMode === "time_series" ? (
             <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={timeSeriesData}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 20%)" />
                 <XAxis dataKey="date" tick={{ fill: "hsl(215, 15%, 55%)", fontSize: 12 }} />
                 <YAxis tick={{ fill: "hsl(215, 15%, 55%)", fontSize: 12 }} />
@@ -133,7 +179,17 @@ export default function TrendsPage() {
                     borderRadius: "8px",
                     color: "hsl(210, 20%, 92%)",
                   }}
+                  formatter={(value: number, name: string) => {
+                    if (name === "Trend") return [`${value.toLocaleString()} ${cfg.unit}`, "Trend"];
+                    return [`${value.toLocaleString()} ${cfg.unit}`, cfg.label];
+                  }}
                 />
+                <Legend
+                  formatter={(value) => (
+                    <span style={{ color: "hsl(215, 15%, 65%)", fontSize: 12 }}>{value}</span>
+                  )}
+                />
+                {/* Actual data line */}
                 <Line
                   type="monotone"
                   dataKey="value"
@@ -142,6 +198,18 @@ export default function TrendsPage() {
                   strokeWidth={2}
                   dot={{ fill: cfg.color, r: 4 }}
                   activeDot={{ r: 6 }}
+                  connectNulls={true}
+                />
+                {/* Best-fit trend line */}
+                <Line
+                  type="linear"
+                  dataKey="trend"
+                  name="Trend"
+                  stroke="hsl(215, 15%, 65%)"
+                  strokeWidth={1.5}
+                  strokeDasharray="6 3"
+                  dot={false}
+                  activeDot={false}
                   connectNulls={true}
                 />
               </LineChart>
