@@ -2,3 +2,6 @@ project_id = "mlcjadrcgdverlqgqsur"
 
 [functions.extract-zwift]
 verify_jwt = false
+
+[functions.ride-voice-review]
+verify_jwt = false
